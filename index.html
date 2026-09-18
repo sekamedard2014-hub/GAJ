@@ -3734,6 +3734,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
         </div>
         <div class="row" style="gap:8px;margin-bottom:10px">
           <button class="btn btn-sm" id="btn-blind">👁 Théorique : masqué</button>
+          <span id="terrain-hide-compte" style="display:contents">
           <span style="display:inline-flex;gap:8px;flex:none"><button class="btn btn-gold btn-sm" id="btn-print">📄 Feuille picking</button><button class="btn btn-gold btn-sm" id="btn-print-sup">🟫 Feuille supports</button></span>
           <button class="btn btn-sm" id="btn-print-ecarts">📋 Écarts / régule</button>
           <span class="infob" tabindex="0" aria-label="À quoi sert la feuille des écarts"><span aria-hidden="true">i</span><span class="infob-tip"><span class="it-h">📋 Écarts / régule</span>Imprime la feuille (PDF) des références en écart à régulariser dans le système, avec une colonne <b>« Régularisé ✓ / date »</b> à cocher et des cases de signature. Respecte la zone, l'allée et la travée actives.</span></span>
@@ -3741,6 +3742,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
           <span class="infob" tabindex="0" aria-label="À quoi sert l'export Excel"><span aria-hidden="true">i</span><span class="infob-tip"><span class="it-h">📊 Export Excel</span>Exporte la même liste d'écarts au format tableur (<b>.xlsx</b>) pour l'archivage et le suivi des régularisations.</span></span>
           <button class="btn btn-gold btn-sm" id="btn-sign-ecarts" title="Valider les écarts par signature électronique, sans impression papier">✍️ Valider numériquement</button>
           <button class="btn btn-sm" id="btn-sign-hist" title="Historique des validations numériques">🕐 Historique</button>
+          </span>
           <button class="btn btn-gold btn-sm" id="btn-export-terrain" title="Enregistre votre comptage dans un fichier à transmettre à l'administrateur">💾 Terminer &amp; exporter mon comptage</button>
           <button class="btn btn-sm btn-danger" id="btn-reset" style="margin-left:auto">🔄 Réinitialiser</button>
         </div>
@@ -4086,9 +4088,11 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
           <div><label class="cs-lbl">Zone / allée (scan ou saisie + Entrée)</label><input id="cs-zone-jump" placeholder="Ex: A 05" style="max-width:160px"></div>
           <button class="btn btn-sm" id="cs-scan" title="Scanner le QR de l'allée/zone pour y accéder directement">📷 Scanner zone</button>
           <button class="btn btn-gold btn-sm" id="cs-save">💾 Enregistrer</button>
+          <span id="terrain-hide-consigne" style="display:contents">
           <button class="btn btn-sm" id="cs-print">🖨️ Rapport PDF</button>
           <button class="btn btn-sm" id="cs-sheets">📋 Fiches de comptage (papier, secours)</button>
           <button class="btn btn-gold btn-sm" id="cs-sign" title="Clôturer l'inventaire par signature électronique, sans impression papier">✍️ Clôturer numériquement</button>
+          </span>
           <button class="btn btn-gold btn-sm" id="cs-export-terrain" title="Enregistre votre comptage dans un fichier à transmettre à l'administrateur">💾 Terminer &amp; exporter mon comptage</button>
           <span class="ct" id="cs-info"></span>
         </div>
@@ -5368,9 +5372,13 @@ function enterApp(){
     if(SCOPE.allees.length===1){curAllee=SCOPE.allees[0];if($("sel-allee"))$("sel-allee").value=curAllee;}
   }
   /* Le chef de secteur garde ses deux écrans (Comptage/Stock, Inventaire
-     consignes) mais pas les actions destructives ou d'administration qui
-     s'y trouvent. */
-  if($("btn-reset"))$("btn-reset").style.display=(ME.role==="chef_secteur")?"none":"";
+     consignes) mais pas les actions destructives, imprimables ou de
+     reporting qui s'y trouvent — seuls le comptage lui-même et l'export
+     vers l'administrateur restent visibles. */
+  var isTerrain=(ME.role==="chef_secteur");
+  if($("btn-reset"))$("btn-reset").style.display=isTerrain?"none":"";
+  if($("terrain-hide-compte"))$("terrain-hide-compte").style.display=isTerrain?"none":"contents";
+  if($("terrain-hide-consigne"))$("terrain-hide-consigne").style.display=isTerrain?"none":"contents";
   startIdle();
   lockApp();
 }
