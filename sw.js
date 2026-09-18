@@ -1,11 +1,13 @@
 /* Service worker — GAJ CAVA
-   Rend l'application utilisable hors-ligne sur le terrain (entrepôt,
-   zones sans réseau) : l'app-shell (index.html, manifest, icônes) est
-   mise en cache et servie instantanément, avec mise à jour silencieuse
-   en arrière-plan dès qu'une connexion est disponible. */
+   Rend la page utilisable hors-ligne sur le terrain (entrepôt, zones
+   sans réseau) : l'app-shell (index.html) est mise en cache et servie
+   instantanément depuis un onglet de navigateur classique, avec mise
+   à jour silencieuse en arrière-plan dès qu'une connexion est
+   disponible. Aucune installation d'application : pas de manifeste,
+   pas d'icône ajoutée à l'appareil, pas d'invite « Installer ». */
 "use strict";
-var CACHE_VERSION = "gaj-cava-v1";
-var APP_SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png"];
+var CACHE_VERSION = "gaj-cava-v2";
+var APP_SHELL = ["./", "./index.html"];
 
 self.addEventListener("install", function (e) {
   self.skipWaiting();

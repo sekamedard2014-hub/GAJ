@@ -6,13 +6,7 @@
 <meta name="author" content="GAJ_CAVA_FLUX_INTERNE_V.5">
 <title>GAJ_CAVA_FLUX_INTERNE_V.5 — Activités Journalières</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='13' fill='%232C2E83'/%3E%3Cpath d='M14 44V20h12a8 8 0 0 1 0 16h-5v8z' fill='%23FFCC00'/%3E%3Cpath d='M40 41l6 6 12-13' fill='none' stroke='%23FFCC00' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-<link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#2D2E83">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GAJ CAVA">
 <style>
 /* ============================================================
    GAJ CAVA V2 — Design System & CSS
@@ -10490,10 +10484,13 @@ function omRenderAlleeGrid(users){
 onLoggedOut();
 </script>
 
-<!-- PWA : installable + fonctionnement hors-ligne sur le terrain.
-     Ignoré silencieusement si servi en file:// (les service workers
-     exigent une origine http(s)/localhost) — l'appli reste pleinement
-     utilisable, seule l'installation/le cache hors-ligne est indisponible. -->
+<!-- Cache hors-ligne (PAS une installation d'application) : la page reste
+     un onglet de navigateur ordinaire, sans manifeste ni icône ajoutée à
+     l'appareil ni invite "Installer" — seul son contenu est mis en cache
+     pour rester utilisable sans réseau sur le terrain. Ignoré
+     silencieusement si servi en file:// (les service workers exigent une
+     origine http(s)/localhost) — l'appli reste pleinement utilisable,
+     seul le cache hors-ligne est alors indisponible. -->
 <script>
 "use strict";
 if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
@@ -10504,7 +10501,7 @@ if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
           toast("Nouvelle version disponible — rechargez la page quand vous êtes prêt.");
         }
       });
-    }).catch(function () { /* pas de PWA sur cette origine, tant pis */ });
+    }).catch(function () { /* pas de cache hors-ligne sur cette origine, tant pis */ });
   });
 }
 </script>
