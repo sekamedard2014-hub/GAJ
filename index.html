@@ -3664,6 +3664,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
           </select>
           <select id="sel-fournisseur" style="max-width:190px;flex:0 0 auto"></select>
           <input id="search" placeholder="🔎 Code article ou désignation…" style="flex:1 1 180px;min-width:160px">
+          <button type="button" class="btn btn-sm" id="btn-scan" title="Scanner le code-barres de l'article (caméra)">📷 Scanner</button>
         </div>
         <div class="row" style="gap:8px;margin-bottom:10px">
           <button class="btn btn-sm" id="btn-blind">👁 Théorique : masqué</button>
@@ -3672,6 +3673,8 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
           <span class="infob" tabindex="0" aria-label="À quoi sert la feuille des écarts"><span aria-hidden="true">i</span><span class="infob-tip"><span class="it-h">📋 Écarts / régule</span>Imprime la feuille (PDF) des références en écart à régulariser dans le système, avec une colonne <b>« Régularisé ✓ / date »</b> à cocher et des cases de signature. Respecte la zone, l'allée et la travée actives.</span></span>
           <button class="btn btn-sm" id="btn-xls-ecarts">📊 Export Excel</button>
           <span class="infob" tabindex="0" aria-label="À quoi sert l'export Excel"><span aria-hidden="true">i</span><span class="infob-tip"><span class="it-h">📊 Export Excel</span>Exporte la même liste d'écarts au format tableur (<b>.xlsx</b>) pour l'archivage et le suivi des régularisations.</span></span>
+          <button class="btn btn-gold btn-sm" id="btn-sign-ecarts" title="Valider les écarts par signature électronique, sans impression papier">✍️ Valider numériquement</button>
+          <button class="btn btn-sm" id="btn-sign-hist" title="Historique des validations numériques">🕐 Historique</button>
           <button class="btn btn-sm btn-danger" id="btn-reset" style="margin-left:auto">🔄 Réinitialiser</button>
         </div>
         <div id="perim"></div>
@@ -4013,9 +4016,11 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
         <div class="row" style="align-items:flex-end;gap:14px">
           <div><label class="cs-lbl">Mois d'inventaire</label><input type="month" id="cs-month" style="max-width:180px"></div>
           <button class="btn btn-sm" id="cs-load">Charger</button>
+          <button class="btn btn-sm" id="cs-scan" title="Scanner le QR de l'allée/zone pour y accéder directement">📷 Scanner zone</button>
           <button class="btn btn-gold btn-sm" id="cs-save">💾 Enregistrer</button>
           <button class="btn btn-sm" id="cs-print">🖨️ Rapport PDF</button>
-          <button class="btn btn-sm" id="cs-sheets">📋 Fiches de comptage</button>
+          <button class="btn btn-sm" id="cs-sheets">📋 Fiches de comptage (papier, secours)</button>
+          <button class="btn btn-gold btn-sm" id="cs-sign" title="Clôturer l'inventaire par signature électronique, sans impression papier">✍️ Clôturer numériquement</button>
           <span class="ct" id="cs-info"></span>
         </div>
         <div class="ct" style="margin-top:8px">Code palette EPAL : <b style="color:var(--navy-dark)">100514060</b></div>
@@ -4501,6 +4506,49 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
 </div>
 <datalist id="art-list2"></datalist>
 
+<!-- Modal Scanner (code-barres / QR — remplace la recherche/saisie manuelle sur le terrain) -->
+<div id="scan-modal" class="modal-bg">
+  <div class="modal-box" style="max-width:420px">
+    <h3>📷 Scanner un code</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Visez le code-barres de l'article ou le QR code de l'allée/zone.</div>
+    <div style="position:relative;background:#000;border-radius:10px;overflow:hidden">
+      <video id="scan-video" playsinline autoplay muted style="width:100%;max-height:280px;display:block"></video>
+      <div style="position:absolute;inset:18%;border:2px solid var(--gold, #FFCC00);border-radius:10px;pointer-events:none"></div>
+    </div>
+    <div id="scan-hint" style="font-size:11px;color:var(--muted);margin-top:8px"></div>
+    <div class="row" style="margin-top:12px;gap:8px">
+      <button class="btn btn-sm" id="scan-manual">Saisir le code manuellement</button>
+      <button class="btn btn-sm btn-danger" id="scan-close" style="margin-left:auto">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Signature électronique (remplace les cases "Nom & signature" imprimées) -->
+<div id="sig-modal" class="modal-bg">
+  <div class="modal-box" style="max-width:420px">
+    <h3 id="sig-title">✍️ Signature</h3>
+    <div class="fgroup"><label>Nom &amp; matricule du signataire</label><input id="sig-name" placeholder="Nom Prénom · Matricule"></div>
+    <div style="border:1px solid var(--navy-line);border-radius:10px;background:#fff;touch-action:none">
+      <canvas id="sig-canvas" width="360" height="160" style="width:100%;height:160px;display:block;cursor:crosshair"></canvas>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Signez au doigt ou à la souris dans le cadre ci-dessus.</div>
+    <div class="row" style="margin-top:12px;gap:8px">
+      <button class="btn btn-sm" id="sig-clear">Effacer</button>
+      <button class="btn btn-sm btn-danger" id="sig-cancel" style="margin-left:auto">Annuler</button>
+      <button class="btn btn-gold btn-sm" id="sig-ok">Valider ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Historique des validations numériques (traçabilité sans papier) -->
+<div id="rs-hist-modal" class="modal-bg">
+  <div class="modal-box modal-xl">
+    <h3>🕐 Historique des validations numériques</h3>
+    <div id="rs-hist-body" style="max-height:60vh;overflow-y:auto"></div>
+    <div class="row" style="margin-top:14px"><button class="btn btn-sm" id="rs-hist-close" style="margin-left:auto">Fermer</button></div>
+  </div>
+</div>
+
 <!-- Modal Investigation (statut) -->
 <div id="inv-modal" class="modal-bg">
   <div class="modal-box" style="max-width:440px">
@@ -4574,7 +4622,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       ],
       catalogue: [], picking: {}, supports: [], om: [], mapping: { catalogue: null, picking: null, supports: null },
       counts: {}, supcounts: {}, suploc: {}, invest: {}, regule: {}, countmeta: {}, pickOverride: {}, rowLocked: {}, consignes: {},
-      retours: [],
+      retours: [], regulSign: [], consSign: {},
       activities: [], meta: { cat: null, pick: null, sup: null, om: null }, log: [], settings: { blind: true }
     };
   }
@@ -4965,6 +5013,22 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       }
     }
     if (path === "log" && method === "GET") { if (cur.role !== "admin") throw err("réservé administrateur"); return { log: DB.log.slice(0, 500) }; }
+    if (path === "regulsign" && method === "GET") { return { list: (DB.regulSign || []).slice(0, 300) }; }
+    if (path === "regulsign" && method === "POST") {
+      if (!b.signatures || !b.signatures.length) throw err("signature manquante");
+      DB.regulSign = DB.regulSign || [];
+      var rsRec = { id: uid("rs_"), at: new Date().toISOString(), by: cur.matricule + " · " + cur.nom, perimeter: b.perimeter || "", refs: b.refs || [], totEc: b.totEc || 0, totVal: b.totVal || 0, signatures: b.signatures };
+      DB.regulSign.unshift(rsRec);
+      save(); log("validation_numerique_ecarts", (b.perimeter || "") + " · " + (b.refs || []).length + " réf. · " + b.signatures.length + " signature(s)");
+      return { ok: true, rec: rsRec };
+    }
+    if (path === "conssign" && method === "POST") {
+      if (!b.period || !b.signatures || !b.signatures.length) throw err("données invalides");
+      DB.consSign = DB.consSign || {};
+      DB.consSign[b.period] = { at: new Date().toISOString(), by: cur.matricule + " · " + cur.nom, signatures: b.signatures };
+      save(); log("validation_numerique_consignes", b.period + " · " + b.signatures.length + " signature(s)");
+      return { ok: true };
+    }
     throw err("route inconnue : " + path);
   }
   function err(m) { var e = new Error(m); e.gaj = true; return e; }
@@ -5870,6 +5934,134 @@ $("tbody").addEventListener("click",function(e){var b=e.target.closest("button")
   else if(b.dataset.an)openAnomalieFromEcart(b.dataset.an);});
 var _searchT;$("search").addEventListener("input",function(e){search=e.target.value;clearTimeout(_searchT);_searchT=setTimeout(renderTable,180);});
 $("pills").addEventListener("click",function(e){var p=e.target.closest(".pill");if(!p)return;filter=p.dataset.f;Array.prototype.forEach.call(document.querySelectorAll(".pill"),function(x){x.classList.toggle("active",x===p);});renderTable();});
+
+/* ============================================================
+   Scan caméra (code-barres/QR) + Signature électronique
+   Objectif : supprimer le papier du circuit de contrôle de
+   stock — saisie du code sur le terrain par scan plutôt que
+   clavier, validation des écarts/inventaires par signature à
+   l'écran plutôt que par impression + case à cocher manuscrite.
+   ============================================================ */
+var _scanStream=null,_scanRAF=null,_scanCB=null,_scanDetector=null;
+function openScanner(hint,cb){
+  _scanCB=cb;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast("Caméra indisponible sur cet appareil — utilisez la saisie manuelle.");return;}
+  $("scan-hint").textContent=hint||"";
+  openModal("scan-modal");
+  var video=$("scan-video");
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}}).then(function(stream){
+    _scanStream=stream;video.srcObject=stream;
+    try{_scanDetector=("BarcodeDetector" in window)?new BarcodeDetector({formats:["qr_code","ean_13","ean_8","code_128","code_39","upc_a","upc_e"]}):null;}catch(e){_scanDetector=null;}
+    if(!_scanDetector)$("scan-hint").textContent="Lecture automatique non supportée par ce navigateur — utilisez la saisie manuelle ci-dessous.";
+    else scanTick();
+  }).catch(function(e){toast("Caméra refusée ou indisponible : "+(e&&e.message||""));closeModal("scan-modal");});
+}
+function scanTick(){
+  if(!_scanStream||!_scanDetector)return;
+  _scanDetector.detect($("scan-video")).then(function(codes){
+    if(codes&&codes.length){var v=codes[0].rawValue;stopScanner();if(_scanCB)_scanCB(v);}
+    else _scanRAF=requestAnimationFrame(scanTick);
+  }).catch(function(){_scanRAF=requestAnimationFrame(scanTick);});
+}
+function stopScanner(){
+  if(_scanRAF)cancelAnimationFrame(_scanRAF);_scanRAF=null;_scanDetector=null;
+  if(_scanStream){_scanStream.getTracks().forEach(function(t){t.stop();});_scanStream=null;}
+  closeModal("scan-modal");
+}
+if($("scan-close"))$("scan-close").onclick=stopScanner;
+if($("scan-manual"))$("scan-manual").onclick=function(){var v=prompt("Saisir le code manuellement :");stopScanner();if(v&&v.trim()&&_scanCB)_scanCB(v.trim());};
+
+if($("btn-scan"))$("btn-scan").onclick=function(){
+  openScanner("Visez le code-barres de l'article.",function(code){
+    $("search").value=code;search=code;renderTable();
+    var m=visible();
+    if(m.length){
+      toast((m.length===1?"Article trouvé":m.length+" articles correspondants")+" : "+code);
+      setTimeout(function(){
+        var tr=document.querySelector('tr.main[data-code="'+CSS.escape(m[0].code)+'"]');
+        if(tr){tr.scrollIntoView({block:"center"});var ci=tr.querySelector("input.count-input[data-cnt]");if(ci){ci.focus();ci.select();}}
+      },60);
+    }else toast("Aucun article trouvé pour le code "+code+".");
+  });
+};
+
+if($("cs-scan"))$("cs-scan").onclick=function(){
+  openScanner("Visez le QR/étiquette de l'allée ou de la zone.",function(code){
+    var nz=function(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");};
+    var target=nz(code);
+    var key=CZ_ALL.filter(function(k){return nz(k)===target;})[0]||CZ_ALL.filter(function(k){return nz(k).indexOf(target)>=0||target.indexOf(nz(k))>=0;})[0];
+    if(!key){toast("Zone/allée introuvable pour le code "+code+".");return;}
+    var row=document.querySelector('#cs-body input[data-z="'+CSS.escape(key)+'"]');
+    if(row){row.scrollIntoView({block:"center"});row.focus();}
+    toast("Zone repérée : "+key);
+  });
+};
+
+/* ---------- Signature électronique (canvas, tactile + souris) ---------- */
+var _sigCtx=null,_sigDrawing=false,_sigHasInk=false,_sigQueue=[],_sigResults=[],_sigDone=null;
+function sigPos(e,canvas){
+  var r=canvas.getBoundingClientRect();var t=(e.touches&&e.touches[0])?e.touches[0]:e;
+  return{x:(t.clientX-r.left)*(canvas.width/r.width),y:(t.clientY-r.top)*(canvas.height/r.height)};
+}
+function sigInit(){
+  var c=$("sig-canvas");if(!c||_sigCtx)return;
+  _sigCtx=c.getContext("2d");
+  function start(e){_sigDrawing=true;var p=sigPos(e,c);_sigCtx.beginPath();_sigCtx.moveTo(p.x,p.y);e.preventDefault();}
+  function move(e){if(!_sigDrawing)return;var p=sigPos(e,c);_sigCtx.lineWidth=2.4;_sigCtx.lineCap="round";_sigCtx.strokeStyle="#1A1B45";_sigCtx.lineTo(p.x,p.y);_sigCtx.stroke();_sigHasInk=true;e.preventDefault();}
+  function end(){_sigDrawing=false;}
+  c.addEventListener("mousedown",start);c.addEventListener("mousemove",move);window.addEventListener("mouseup",end);
+  c.addEventListener("touchstart",start,{passive:false});c.addEventListener("touchmove",move,{passive:false});c.addEventListener("touchend",end);
+}
+function sigClearCanvas(){var c=$("sig-canvas");if(_sigCtx&&c)_sigCtx.clearRect(0,0,c.width,c.height);_sigHasInk=false;}
+function openSignaturePad(roles,onDone){sigInit();_sigQueue=roles.slice();_sigResults=[];_sigDone=onDone;openModal("sig-modal");sigNextRole();}
+function sigNextRole(){
+  if(!_sigQueue.length){closeModal("sig-modal");var res=_sigResults,cb=_sigDone;_sigDone=null;if(cb)cb(res);return;}
+  $("sig-title").textContent="✍️ Signature — "+_sigQueue[0];$("sig-name").value="";sigClearCanvas();
+}
+if($("sig-clear"))$("sig-clear").onclick=sigClearCanvas;
+if($("sig-cancel"))$("sig-cancel").onclick=function(){_sigQueue=[];_sigDone=null;closeModal("sig-modal");};
+if($("sig-ok"))$("sig-ok").onclick=function(){
+  if(!_sigHasInk){toast("Signez dans le cadre avant de valider.");return;}
+  if(!$("sig-name").value.trim()){toast("Indiquez le nom du signataire.");return;}
+  var role=_sigQueue.shift();
+  _sigResults.push({role:role,name:$("sig-name").value.trim(),dataURL:$("sig-canvas").toDataURL("image/png"),at:new Date().toISOString()});
+  sigNextRole();
+};
+
+if($("btn-sign-ecarts"))$("btn-sign-ecarts").onclick=function(){
+  var l=scopeArticles(),refs=[],totEc=0,totVal=0;
+  l.forEach(function(a){var m=metrics(a);if(m.pickEcart!=null&&m.pickEcart!==0){refs.push(a.code);totEc++;if(m.val!=null)totVal+=m.val;}});
+  if(!refs.length){toast("Aucun écart à valider.");return;}
+  openSignaturePad(["Régularisé par","Vérifié par","Validé — Chef de secteur ou Agent logistique"],function(sigs){
+    api("regulsign","POST",{perimeter:perimLabel(),refs:refs,totEc:totEc,totVal:totVal,signatures:sigs})
+      .then(function(){toast("✓ "+totEc+" écart(s) validé(s) numériquement — aucune impression nécessaire.");})
+      .catch(function(e){toast(e.message);});
+  });
+};
+
+if($("btn-sign-hist"))$("btn-sign-hist").onclick=function(){
+  api("regulsign","GET").then(function(r){
+    var list=r.list||[];
+    var html=list.length?list.map(function(x){
+      var imgs=(x.signatures||[]).map(function(s){return '<div style="display:inline-block;text-align:center;margin:0 8px 8px 0"><img src="'+s.dataURL+'" style="height:50px;border:1px solid var(--navy-line);border-radius:6px;background:#fff"><div style="font-size:10px;color:var(--muted)">'+esc(s.role)+"<br>"+esc(s.name)+"</div></div>";}).join("");
+      return '<div class="card" style="margin-bottom:10px"><div style="font-size:12px;color:var(--muted)">'+new Date(x.at).toLocaleString("fr-FR")+" · "+esc(x.by)+"</div>"
+        +"<div style='margin:4px 0'><b>"+esc(x.perimeter||"—")+"</b> — "+x.refs.length+" référence(s) · écart valorisé "+money(x.totVal||0)+"</div>"
+        +"<div>"+imgs+"</div></div>";
+    }).join(""):'<div class="ct">Aucune validation numérique enregistrée pour l\'instant.</div>';
+    $("rs-hist-body").innerHTML=html;openModal("rs-hist-modal");
+  }).catch(function(e){toast(e.message);});
+};
+if($("rs-hist-close"))$("rs-hist-close").onclick=function(){closeModal("rs-hist-modal");};
+
+if($("cs-sign"))$("cs-sign").onclick=function(){
+  if(!CONS||!_csPeriod){toast("Choisissez un mois d'abord.");return;}
+  var c=csCompute(CONS);
+  openSignaturePad(["Établi par","Vérifié par","Validé — Chef de secteur ou Agent logistique"],function(sigs){
+    api("conssign","POST",{period:_csPeriod,signatures:sigs})
+      .then(function(){toast("✓ Inventaire "+_csPeriod+" clôturé numériquement (écart "+(c.ecart>0?"+":"")+csFmt(c.ecart)+" EPAL) — sans papier.");})
+      .catch(function(e){toast(e.message);});
+  });
+};
 
 /* ---------- Aveugle ---------- */
 function syncBlindBtn(){var b=$("btn-blind");b.textContent=blind?"👁 Théorique : masqué":"👁 Théorique : affiché";}
