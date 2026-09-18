@@ -2,6 +2,29 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<script>
+/* Filet de sécurité anti-"aucune réaction" : affiche toute erreur JS
+   à l'écran (via toast si déjà chargé, sinon une alerte) au lieu de
+   la laisser silencieuse. Placé en tout premier pour capter même les
+   erreurs qui surviennent avant le reste du script. */
+(function(){
+  function show(msg){
+    try{ if(typeof toast==="function"){toast(msg);return;} }catch(e){}
+    try{ alert(msg); }catch(e){}
+  }
+  window.addEventListener("error",function(e){
+    var msg="⚠️ Erreur : "+((e&&e.message)||"inconnue")+(e&&e.filename?(" ("+String(e.filename).split("/").pop()+":"+e.lineno+")"):"");
+    try{console.error("GAJ error",e);}catch(_){}
+    show(msg);
+  });
+  window.addEventListener("unhandledrejection",function(e){
+    var r=e&&e.reason;
+    var msg="⚠️ Erreur : "+((r&&r.message)?r.message:String(r));
+    try{console.error("GAJ unhandledrejection",r);}catch(_){}
+    show(msg);
+  });
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="author" content="GAJ_CAVA_FLUX_INTERNE_V.5">
 <title>GAJ_CAVA_FLUX_INTERNE_V.5 — Activités Journalières</title>
