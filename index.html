@@ -3375,6 +3375,44 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
   box-shadow:-8px 0 20px -5px rgba(255,204,0,.5),0 4px 14px -3px rgba(0,0,0,.4)!important;
 }
 
+/* ============================================================
+   Menu latéral en tiroir sur téléphone/tablette/PDA (≤900px).
+   Remplace l'affichage "en ligne, toujours déployé" hérité du
+   bureau (qui obligeait à faire défiler tout le menu avant
+   d'atteindre le Comptage ou l'Inventaire consignes) par un
+   tiroir masqué par défaut, ouvert via ☰, refermé au choix d'un
+   onglet ou en touchant le fond assombri. Placé en fin de feuille
+   de style pour l'emporter sur les règles ".side"/"side-collapsed"
+   plus anciennes définies plus haut. Aucun impact au-delà de
+   900px (comportement bureau inchangé).
+   ============================================================ */
+@media(max-width:900px){
+  #app{grid-template-rows:auto auto 1fr auto!important}
+  .side{
+    position:fixed!important;top:0;left:0;bottom:0;grid-row:auto!important;
+    width:min(86vw,320px)!important;height:100vh!important;max-height:100vh;
+    transform:translateX(-101%);transition:transform .22s ease;
+    z-index:400!important;box-shadow:0 0 0 rgba(0,0,0,0);overflow-y:auto;
+    grid-template-columns:none!important;
+  }
+  body.side-open .side{transform:translateX(0);box-shadow:18px 0 40px rgba(0,0,0,.35)}
+  #side-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(10,10,25,.5);z-index:390;
+  }
+  body.side-open #side-backdrop{display:block}
+  body.side-open{overflow:hidden}
+  /* Le tiroir garde toujours son menu complet lisible (jamais le rail d'icônes du bureau) */
+  .side .side-brand-col,.side #mascotte,.side .nav-main-lbl,.side .side-foot .who{display:flex!important}
+  .side .nav-main-lbl{display:inline!important}
+  #app,body.side-collapsed #app{grid-template-columns:1fr!important}
+  .banner,.subbar,.wrap,.foot{grid-column:1!important}
+
+  /* Cibles tactiles plus grandes pour la saisie au doigt (comptage,
+     inventaire consignes) — sans toucher à la densité du bureau. */
+  input,select,textarea{min-height:40px;font-size:14px!important}
+  .count-input{min-height:40px}
+  .btn,.pill{min-height:40px;padding-top:9px;padding-bottom:9px}
+}
 </style>
 </head>
 <body>
@@ -3481,6 +3519,9 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
 
 <!-- ==================== APP ==================== -->
 <div id="app" class="hidden">
+
+  <!-- Fond assombri du tiroir de menu mobile (≤900px) : le toucher referme le menu -->
+  <div id="side-backdrop"></div>
 
   <!-- ===== SIDEBAR ===== -->
   <aside class="side" id="app-side">
@@ -4017,6 +4058,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
         <div class="row" style="align-items:flex-end;gap:14px">
           <div><label class="cs-lbl">Mois d'inventaire</label><input type="month" id="cs-month" style="max-width:180px"></div>
           <button class="btn btn-sm" id="cs-load">Charger</button>
+          <div><label class="cs-lbl">Zone / allée (scan ou saisie + Entrée)</label><input id="cs-zone-jump" placeholder="Ex: A 05" style="max-width:160px"></div>
           <button class="btn btn-sm" id="cs-scan" title="Scanner le QR de l'allée/zone pour y accéder directement">📷 Scanner zone</button>
           <button class="btn btn-gold btn-sm" id="cs-save">💾 Enregistrer</button>
           <button class="btn btn-sm" id="cs-print">🖨️ Rapport PDF</button>
@@ -4191,22 +4233,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
         <input type="file" id="file-sup" accept=".txt,.csv,.xlsx,.xls" class="hidden">
         <div class="row" style="margin-top:12px"><button class="btn btn-sm" id="btn-demo">Charger données de démo</button></div>
       </div>
-      <div class="card">
-        <h3>☁️ Synchronisation réseau</h3>
-        <span class="infob" tabindex="0" aria-label="À quoi sert la synchronisation réseau"><span aria-hidden="true">i</span><span class="infob-tip"><span class="it-h">☁️ Synchronisation réseau</span>Remplace l'échange manuel de fichiers .json entre postes : chaque poste connecté envoie et reçoit automatiquement les activités, comptages, régularisations, signatures et retours via le serveur de synchronisation. Fonctionne toujours hors-ligne en secours — la synchronisation reprend dès que le réseau revient.</span></span>
-        <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
-          <input id="sync-url" placeholder="Adresse du serveur (ex: https://gaj.entrepot.local:8787)" style="flex:1 1 260px;min-width:220px">
-          <input id="sync-matricule" placeholder="Identifiant serveur" style="max-width:160px">
-          <input id="sync-password" type="password" placeholder="Mot de passe" style="max-width:160px">
-        </div>
-        <div class="row" style="gap:8px;margin-top:10px">
-          <button class="btn btn-gold btn-sm" id="sync-connect">🔌 Se connecter</button>
-          <button class="btn btn-sm" id="sync-now">🔄 Synchroniser maintenant</button>
-          <button class="btn btn-sm btn-danger" id="sync-logout">Déconnecter ce poste</button>
-          <span class="ct" id="sync-badge">🔌 Sync : non configurée</span>
-        </div>
-      </div>
-      <div class="card"><h3>Base de données (fichier central)</h3><span class="infob" tabindex="0" aria-label="Procédure de consolidation (admin)"><span aria-hidden="true">i</span><span class="infob-tip"><span class="it-h">🗂️ Consolidation (admin) — repli hors-ligne</span>Si aucun serveur de synchronisation n'est disponible : <span class="it-step">📂 Restaurer la base consolidée</span> = restaurer la dernière <b>03_Base consolidée</b> (écrase tout, à faire une seule fois au départ). <span class="it-step">🔗 Fusionner plusieurs</span> = intégrer tous les fichiers de <b>02_Sauvegardes utilisateurs</b> sans rien écraser. Puis <span class="it-step">💾 Sauvegarder</span> et ranger le résultat dans <b>03_Base consolidée</b>.</span></span>
+      <div class="card"><h3>Base de données (fichier central)</h3><span class="infob" tabindex="0" aria-label="Procédure de consolidation (admin)"><span aria-hidden="true">i</span><span class="infob-tip"><span class="it-h">🗂️ Consolidation (admin)</span><span class="it-step">📂 Restaurer la base consolidée</span> = restaurer la dernière <b>03_Base consolidée</b> (écrase tout, à faire une seule fois au départ). <span class="it-step">🔗 Fusionner plusieurs</span> = intégrer tous les fichiers de <b>02_Sauvegardes utilisateurs</b> sans rien écraser. Puis <span class="it-step">💾 Sauvegarder</span> et ranger le résultat dans <b>03_Base consolidée</b>.</span></span>
         <div class="row" style="margin-top:10px">
           <button class="btn btn-sm" id="btn-import">📂 Restaurer la base consolidée</button>
           <button class="btn btn-sm" id="btn-merge">🔗 Fusionner</button>
@@ -4318,7 +4345,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
 
   </div><!-- /wrap -->
 
-  <footer class="foot">GAJ_CAVA_FLUX_INTERNE — PROSUMA · Direction Logistique Entrepôts GAJ_CAVA_FLUX_INTERNE_V.5 &nbsp;·&nbsp; © 2026nbsp;·GAJ_CAVA_FLUX_INTERNE_V.5 &nbsp;·&nbsp; © 2026nbsp; © 2026</footer>
+  <footer class="foot">GAJ_CAVA_FLUX_INTERNE_V.5 — PROSUMA · Direction Logistique Entrepôts &nbsp;·&nbsp; © 2026</footer>
 </div><!-- /app -->
 
 
@@ -5538,13 +5565,25 @@ var SIDE_KEY="gaj_side_collapsed", GRP_KEY="gaj_menu_group", VUE_KEY="gaj_menu_v
 var CURRENT_GROUP=null;
 
 function sideCollapsed(){try{return localStorage.getItem(SIDE_KEY)==="1";}catch(e){return false;}}
+function isMobileNav(){return window.matchMedia("(max-width:900px)").matches;}
 function setSideCollapsed(v){
   try{localStorage.setItem(SIDE_KEY,v?"1":"0");}catch(e){}
   document.body.classList.toggle("side-collapsed",!!v);
   var b=$("side-toggle");if(b){b.textContent=v?"\u00bb":"\u00ab";b.title=v?"D\u00e9plier le menu":"R\u00e9tracter le menu";}
   var bt=$("side-toggle-top");if(bt){bt.title=v?"D\u00e9plier le menu":"R\u00e9tracter le menu";bt.setAttribute("aria-label",bt.title);bt.classList.toggle("active",!!v);}
 }
-function toggleSide(){setSideCollapsed(!sideCollapsed());}
+/* T\u00e9l\u00e9phone/tablette/PDA : le menu est un tiroir masqu\u00e9 par d\u00e9faut (voir CSS
+   ".side" en fin de feuille de style), distinct du rail r\u00e9tract\u00e9 du bureau. */
+function setSideOpenMobile(v){
+  document.body.classList.toggle("side-open",!!v);
+  var bt=$("side-toggle-top");if(bt){bt.classList.toggle("active",!!v);bt.title=v?"Fermer le menu":"Ouvrir le menu";bt.setAttribute("aria-label",bt.title);}
+}
+function closeSideMobile(){if(isMobileNav())setSideOpenMobile(false);}
+function toggleSide(){
+  if(isMobileNav())setSideOpenMobile(!document.body.classList.contains("side-open"));
+  else setSideCollapsed(!sideCollapsed());
+}
+if($("side-backdrop"))$("side-backdrop").onclick=closeSideMobile;
 
 function groupById(gid){
   var r=null;menuGroupsFor(ME?ME.role:"responsable").forEach(function(g){if(g.id===gid)r=g;});return r;
@@ -5633,6 +5672,7 @@ function selectGroup(gid,view){
 
 var VIEW_IDS=["compte","activ","regarn","retour","consigne","dash","rapp","bdd","adress","ref","users","log","verif"];
 function selectTab(v){
+  closeSideMobile();
   var g=groupOf(v)||CURRENT_GROUP;
   CURRENT_GROUP=g;
   try{localStorage.setItem(GRP_KEY,g||"");localStorage.setItem(VUE_KEY,v);}catch(e){}
@@ -5995,31 +6035,47 @@ function stopScanner(){
 if($("scan-close"))$("scan-close").onclick=stopScanner;
 if($("scan-manual"))$("scan-manual").onclick=function(){var v=prompt("Saisir le code manuellement :");stopScanner();if(v&&v.trim()&&_scanCB)_scanCB(v.trim());};
 
+/* Saut direct vers le champ "Compté" de l'article recherché — utilisé
+   aussi bien par le scan caméra que par une douchette PDA en mode
+   "clavier" (elle tape le code dans le champ de recherche puis envoie
+   Entrée, comme un utilisateur qui validerait sa saisie). */
+function jumpToScannedArticle(code){
+  $("search").value=code;search=code;renderTable();
+  var m=visible();
+  if(m.length){
+    toast((m.length===1?"Article trouvé":m.length+" articles correspondants")+" : "+code);
+    setTimeout(function(){
+      var tr=document.querySelector('tr.main[data-code="'+CSS.escape(m[0].code)+'"]');
+      if(tr){tr.scrollIntoView({block:"center"});var ci=tr.querySelector("input.count-input[data-cnt]");if(ci){ci.focus();ci.select();}}
+    },60);
+  }else toast("Aucun article trouvé pour le code "+code+".");
+}
 if($("btn-scan"))$("btn-scan").onclick=function(){
-  openScanner("Visez le code-barres de l'article.",function(code){
-    $("search").value=code;search=code;renderTable();
-    var m=visible();
-    if(m.length){
-      toast((m.length===1?"Article trouvé":m.length+" articles correspondants")+" : "+code);
-      setTimeout(function(){
-        var tr=document.querySelector('tr.main[data-code="'+CSS.escape(m[0].code)+'"]');
-        if(tr){tr.scrollIntoView({block:"center"});var ci=tr.querySelector("input.count-input[data-cnt]");if(ci){ci.focus();ci.select();}}
-      },60);
-    }else toast("Aucun article trouvé pour le code "+code+".");
-  });
+  openScanner("Visez le code-barres de l'article.",jumpToScannedArticle);
 };
+$("search").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){e.preventDefault();clearTimeout(_searchT);jumpToScannedArticle($("search").value.trim());}
+});
 
+/* Saut direct vers la ligne d'une zone/allée — utilisé par le scan
+   caméra ET par une douchette PDA en mode "clavier" (code tapé dans
+   le champ dédié puis Entrée), ou par une saisie manuelle. */
+function jumpToConsZone(code){
+  var nz=function(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");};
+  var target=nz(code);
+  if(!target)return;
+  var key=CZ_ALL.filter(function(k){return nz(k)===target;})[0]||CZ_ALL.filter(function(k){return nz(k).indexOf(target)>=0||target.indexOf(nz(k))>=0;})[0];
+  if(!key){toast("Zone/allée introuvable pour le code "+code+".");return;}
+  var row=document.querySelector('#cs-body input[data-z="'+CSS.escape(key)+'"]');
+  if(row){row.scrollIntoView({block:"center"});row.focus();}
+  toast("Zone repérée : "+key);
+}
 if($("cs-scan"))$("cs-scan").onclick=function(){
-  openScanner("Visez le QR/étiquette de l'allée ou de la zone.",function(code){
-    var nz=function(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");};
-    var target=nz(code);
-    var key=CZ_ALL.filter(function(k){return nz(k)===target;})[0]||CZ_ALL.filter(function(k){return nz(k).indexOf(target)>=0||target.indexOf(nz(k))>=0;})[0];
-    if(!key){toast("Zone/allée introuvable pour le code "+code+".");return;}
-    var row=document.querySelector('#cs-body input[data-z="'+CSS.escape(key)+'"]');
-    if(row){row.scrollIntoView({block:"center"});row.focus();}
-    toast("Zone repérée : "+key);
-  });
+  openScanner("Visez le QR/étiquette de l'allée ou de la zone.",jumpToConsZone);
 };
+if($("cs-zone-jump"))$("cs-zone-jump").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){e.preventDefault();jumpToConsZone($("cs-zone-jump").value.trim());$("cs-zone-jump").value="";}
+});
 
 /* ---------- Signature électronique (canvas, tactile + souris) ---------- */
 var _sigCtx=null,_sigDrawing=false,_sigHasInk=false,_sigQueue=[],_sigResults=[],_sigDone=null;
@@ -6086,81 +6142,6 @@ if($("cs-sign"))$("cs-sign").onclick=function(){
       .catch(function(e){toast(e.message);});
   });
 };
-
-/* ============================================================
-   Synchronisation réseau — remplace l'échange manuel de fichiers
-   .json entre postes (dossiers "Sauvegardes utilisateurs" /
-   "Base consolidée") par un serveur central. Réutilise
-   window.GAJ.exportDB()/merge() : la même logique de fusion sert
-   pour un fichier importé à la main ET pour une synchronisation
-   réseau, ce qui garde les deux chemins cohérents. Le poste reste
-   pleinement fonctionnel hors-ligne si aucun serveur n'est
-   configuré ou joignable — la synchronisation est un complément,
-   jamais une dépendance bloquante.
-   ============================================================ */
-var SRV_URL_KEY="gaj_srv_url",SRV_TOK_KEY="gaj_srv_token",SRV_USER_KEY="gaj_srv_user",SRV_LAST_KEY="gaj_srv_last";
-function srvUrl(){return (localStorage.getItem(SRV_URL_KEY)||"").trim().replace(/\/+$/,"");}
-function srvToken(){return localStorage.getItem(SRV_TOK_KEY)||"";}
-function srvConfigured(){return !!srvUrl();}
-function srvConnected(){return !!(srvUrl()&&srvToken());}
-function srvFetch(path,opts){
-  opts=opts||{};
-  var ctrl=("AbortController" in window)?new AbortController():null;
-  var to=ctrl?setTimeout(function(){ctrl.abort();},15000):null;
-  var headers={"Content-Type":"application/json"};
-  if(srvToken())headers["Authorization"]="Bearer "+srvToken();
-  return fetch(srvUrl()+path,{method:opts.method||"GET",headers:headers,body:opts.body?JSON.stringify(opts.body):undefined,signal:ctrl?ctrl.signal:undefined})
-    .then(function(r){
-      if(to)clearTimeout(to);
-      return r.json().catch(function(){return{};}).then(function(j){
-        if(!r.ok){var e=new Error(j.error||("Erreur serveur "+r.status));throw e;}
-        return j;
-      });
-    },function(err){if(to)clearTimeout(to);throw err;});
-}
-function srvLogin(url,matricule,password){
-  localStorage.setItem(SRV_URL_KEY,String(url||"").trim().replace(/\/+$/,""));
-  return srvFetch("/api/login",{method:"POST",body:{matricule:matricule,password:password}}).then(function(r){
-    localStorage.setItem(SRV_TOK_KEY,r.token);localStorage.setItem(SRV_USER_KEY,JSON.stringify(r.user));return r.user;
-  });
-}
-function srvLogout(){localStorage.removeItem(SRV_TOK_KEY);localStorage.removeItem(SRV_USER_KEY);syncUpdateBadge();}
-var _syncing=false;
-function syncNow(silent){
-  if(!srvConnected()||!window.GAJ||_syncing)return Promise.resolve(null);
-  _syncing=true;
-  var mine=JSON.parse(window.GAJ.exportDB());
-  return srvFetch("/api/db/merge",{method:"POST",body:{db:mine.db}}).then(function(r){
-    var stats=window.GAJ.merge(r.db);
-    localStorage.setItem(SRV_LAST_KEY,new Date().toISOString());_syncing=false;syncUpdateBadge();
-    if(!silent)toast("✓ Synchronisé — "+(stats.act||0)+" activité(s) · "+(stats.comptages||0)+" comptage(s) · "+(stats.signs||0)+" signature(s) reçus.");
-    if(typeof loadData==="function")loadData();
-    return stats;
-  }).catch(function(e){_syncing=false;syncUpdateBadge(e);if(!silent)toast("Synchronisation impossible : "+e.message);throw e;});
-}
-function syncUpdateBadge(err){
-  var b=$("sync-badge");if(!b)return;
-  if(!srvConfigured()){b.textContent="🔌 Sync : non configurée";return;}
-  if(!srvConnected()){b.textContent="🔒 Sync : déconnecté";return;}
-  if(err){b.textContent="⚠️ Sync : hors ligne (dernier essai échoué)";return;}
-  var last=localStorage.getItem(SRV_LAST_KEY);
-  b.textContent=last?("☁️ Synchronisé à "+new Date(last).toLocaleTimeString("fr-FR")):"☁️ Connecté — synchronisation en cours…";
-}
-if($("sync-connect"))$("sync-connect").onclick=function(){
-  var url=$("sync-url").value,mat=$("sync-matricule").value,pw=$("sync-password").value;
-  if(!url||!mat||!pw){toast("Adresse, identifiant et mot de passe requis.");return;}
-  srvLogin(url,mat,pw).then(function(u){
-    $("sync-password").value="";toast("Connecté au serveur en tant que "+u.nom+".");syncUpdateBadge();syncNow(true);
-  }).catch(function(e){toast("Connexion impossible : "+e.message);});
-};
-if($("sync-now"))$("sync-now").onclick=function(){
-  if(!srvConnected()){toast("Connectez-vous d'abord au serveur de synchronisation.");return;}
-  syncNow(false);
-};
-if($("sync-logout"))$("sync-logout").onclick=function(){srvLogout();toast("Poste déconnecté du serveur de synchronisation.");};
-setInterval(function(){syncNow(true);},30000);
-window.addEventListener("online",function(){syncNow(true);});
-if($("sync-url")){$("sync-url").value=srvUrl();syncUpdateBadge();setTimeout(function(){syncNow(true);},2000);}
 
 /* ---------- Aveugle ---------- */
 function syncBlindBtn(){var b=$("btn-blind");b.textContent=blind?"👁 Théorique : masqué":"👁 Théorique : affiché";}
