@@ -4407,7 +4407,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
           <input id="u-num" placeholder="N° matricule" style="max-width:120px">
           <input id="u-nom" placeholder="Nom & prénom" style="max-width:200px">
           <input id="u-fonc" placeholder="Fonction" style="max-width:160px">
-          <select id="u-role" style="max-width:180px"><option value="responsable">Responsable de zone</option><option value="admin">Administrateur</option><option value="agle">Chef de secteur (terrain)</option></select>
+          <select id="u-role" style="max-width:180px"><option value="responsable">Responsable de zone</option><option value="admin">Administrateur</option><option value="agle">AGLE (responsable de zone)</option><option value="chef_secteur">Chef de secteur (terrain)</option></select>
           <input type="hidden" id="u-sec-removed">
           <input id="u-pwd" placeholder="Mot de passe" style="max-width:180px">
           <button class="btn btn-gold btn-sm" id="u-save">Enregistrer</button>
@@ -4905,7 +4905,8 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
   function scopeOf(u) {
     if (!u) return { all: false, sectors: [], allees: [] };
     // Profil terrain (chef de secteur) : limité aux allées qui lui sont explicitement attribuées.
-    if (u.role === "agle" && Array.isArray(u.allees) && u.allees.length) {
+    // AGLE = responsable de zone, périmètre complet comme les autres profils encadrants.
+    if (u.role === "chef_secteur" && Array.isArray(u.allees) && u.allees.length) {
       return { all: false, sectors: [], allees: u.allees.slice() };
     }
     // Périmètre complet pour les autres profils : chacun peut inventorier toutes les zones/allées
@@ -4980,7 +4981,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       if (method === "POST") {
         if (!b.matricule || !b.nom) throw err("matricule et nom requis");
         if (userByMat(b.matricule)) throw err("matricule déjà utilisé");
-        var nu = { id: uid("u_"), matricule: b.matricule.trim(), numero: (b.numero || "").trim(), nom: b.nom.trim(), fonction: b.fonction || "", role: ["admin", "responsable", "agle"].indexOf(b.role) >= 0 ? b.role : "responsable", sectors: Array.isArray(b.sectors) ? b.sectors : [], allees: Array.isArray(b.allees) ? b.allees : [], password: hashPwd(b.password || b.numero || "1234"), mustChangePassword: !b.password };
+        var nu = { id: uid("u_"), matricule: b.matricule.trim(), numero: (b.numero || "").trim(), nom: b.nom.trim(), fonction: b.fonction || "", role: ["admin", "responsable", "agle", "chef_secteur"].indexOf(b.role) >= 0 ? b.role : "responsable", sectors: Array.isArray(b.sectors) ? b.sectors : [], allees: Array.isArray(b.allees) ? b.allees : [], password: hashPwd(b.password || b.numero || "1234"), mustChangePassword: !b.password };
         DB.users.push(nu); save(); log("création_utilisateur", nu.matricule + " · " + nu.nom); return { user: publicUser(nu) };
       }
       if (method === "PUT") {
@@ -4989,7 +4990,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
         if (b.nom != null) u2.nom = b.nom.trim();
         if (b.numero != null) u2.numero = String(b.numero).trim();
         if (b.fonction != null) u2.fonction = b.fonction;
-        if (b.role && ["admin", "responsable", "agle"].indexOf(b.role) >= 0) u2.role = b.role;
+        if (b.role && ["admin", "responsable", "agle", "chef_secteur"].indexOf(b.role) >= 0) u2.role = b.role;
         if (Array.isArray(b.sectors)) u2.sectors = b.sectors;
         if (Array.isArray(b.allees)) u2.allees = b.allees;
         if (b.password) u2.password = hashPwd(b.password);
@@ -5063,7 +5064,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       save(); return { ok: true };
     }
     if (path === "resetcounts" && method === "POST") {
-      if (cur.role === "agle") throw err("réservé responsable/admin");
+      if (cur.role === "agle" || cur.role === "chef_secteur") throw err("réservé responsable/admin");
       DB.counts = {}; DB.supcounts = {}; DB.suploc = {}; DB.invest = {}; DB.regule = {}; DB.countmeta = {}; DB.pickOverride = {}; DB.rowLocked = {}; save(); log("réinitialisation_comptage"); return { ok: true };
     }
     if (path === "resetdata" && method === "POST") {
@@ -5366,6 +5367,10 @@ function enterApp(){
     fillAllee();
     if(SCOPE.allees.length===1){curAllee=SCOPE.allees[0];if($("sel-allee"))$("sel-allee").value=curAllee;}
   }
+  /* Le chef de secteur garde ses deux écrans (Comptage/Stock, Inventaire
+     consignes) mais pas les actions destructives ou d'administration qui
+     s'y trouvent. */
+  if($("btn-reset"))$("btn-reset").style.display=(ME.role==="chef_secteur")?"none":"";
   startIdle();
   lockApp();
 }
@@ -6202,7 +6207,7 @@ if($("cs-sign"))$("cs-sign").onclick=function(){
 /* ---------- Aveugle ---------- */
 function syncBlindBtn(){var b=$("btn-blind");b.textContent=blind?"👁 Théorique : masqué":"👁 Théorique : affiché";}
 $("btn-blind").onclick=function(){blind=!blind;api("blind","POST",{blind:blind});syncBlindBtn();renderTable();toast(blind?"Théorique masqué.":"Théorique affiché.");};
-$("btn-reset").onclick=function(){if(ME.role==="agle"){toast("Réservé responsable/admin.");return;}if(!confirm("Réinitialiser tout le comptage central ?"))return;api("resetcounts","POST").then(loadData).then(function(){toast("Comptage réinitialisé.");});};
+$("btn-reset").onclick=function(){if(ME.role==="agle"||ME.role==="chef_secteur"){toast("Réservé responsable/admin.");return;}if(!confirm("Réinitialiser tout le comptage central ?"))return;api("resetcounts","POST").then(loadData).then(function(){toast("Comptage réinitialisé.");});};
 
 /* ---------- Impression feuilles terrain (picking / supports dissociés) ---------- */
 function _ftCss(){return 'body{font-family:Arial;font-size:12px;padding:20px}h2{color:#2D2E83;margin:0 0 6px}.sub{font-size:10px;color:#555;margin-bottom:2px}table{width:100%;border-collapse:collapse;margin-top:10px;table-layout:fixed}th,td{border:1px solid #999;padding:5px 7px;vertical-align:top;word-wrap:break-word}th{background:#2D2E83;color:#fff;text-align:left}.r{text-align:right}.chk{background:#ffffff}.f{margin-top:8px;font-size:9px;font-style:italic;color:#777}@media print{a{display:none}}';}
@@ -8097,17 +8102,17 @@ function renderUserAlleeOptions(checked){
     cb.addEventListener("change",function(){cb.closest(".ua-chip").classList.toggle("on",cb.checked);});
   });
 }
-function toggleUserAlleesWrap(){var w=$("u-allees-wrap");if(w)w.style.display=($("u-role").value==="agle")?"block":"none";}
+function toggleUserAlleesWrap(){var w=$("u-allees-wrap");if(w)w.style.display=($("u-role").value==="chef_secteur")?"block":"none";}
 if($("u-role"))$("u-role").addEventListener("change",toggleUserAlleesWrap);
 $("u-body").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
   if(b.dataset.eu){var u=window._users.find(function(x){return x.id===b.dataset.eu;});editUserId=u.id;$("u-mat").value=u.matricule;$("u-num").value=u.numero||"";$("u-nom").value=u.nom;$("u-fonc").value=u.fonction||"";$("u-role").value=u.role;$("u-pwd").value="";renderUserAlleeOptions(u.allees||[]);toggleUserAlleesWrap();toast("Modification de "+u.matricule);}
   else if(b.dataset.du){if(!confirm("Supprimer cet utilisateur ?"))return;api("users","DELETE",{id:b.dataset.du}).then(loadUsers).then(function(){toast("Supprimé.");});}});
 $("u-save").onclick=function(){
   var secs=[];   /* le perimetre par secteur a ete retire du formulaire */
-  var allees=[];if($("u-role").value==="agle")Array.prototype.forEach.call($("u-allees-list").querySelectorAll('input[type="checkbox"]:checked'),function(cb){allees.push(cb.value);});
+  var allees=[];if($("u-role").value==="chef_secteur")Array.prototype.forEach.call($("u-allees-list").querySelectorAll('input[type="checkbox"]:checked'),function(cb){allees.push(cb.value);});
   var body={matricule:$("u-mat").value,numero:$("u-num").value,nom:$("u-nom").value,fonction:$("u-fonc").value,role:$("u-role").value,sectors:secs,allees:allees,password:$("u-pwd").value};
   if(!body.matricule||!body.nom){toast("Initiales et nom requis.");return;}
-  if(body.role==="agle"&&!allees.length){toast("Sélectionnez au moins une allée pour ce chef de secteur.");return;}
+  if(body.role==="chef_secteur"&&!allees.length){toast("Sélectionnez au moins une allée pour ce chef de secteur.");return;}
   var p=editUserId?api("users","PUT",Object.assign({id:editUserId},body)):api("users","POST",body);
   p.then(function(){toast("Enregistré.");clearUserForm();loadUsers();}).catch(function(e){toast(e.message);});};
 function clearUserForm(){editUserId=null;["u-mat","u-num","u-nom","u-fonc","u-pwd"].forEach(function(id){$(id).value="";});$("u-role").value="responsable";renderUserAlleeOptions([]);toggleUserAlleesWrap();}
@@ -8156,7 +8161,7 @@ function csNormZ(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
 function csAllowedKeys(){
   /* Chef de secteur : ne peut saisir que ses allées attribuées. Les autres
      profils (périmètre complet) voient toutes les zones, comme avant. */
-  if(!ME||ME.role!=="agle"||!SCOPE||SCOPE.all)return null;
+  if(!ME||ME.role!=="chef_secteur"||!SCOPE||SCOPE.all)return null;
   var allow={};(SCOPE.allees||[]).forEach(function(a){allow[csNormZ(a)]=1;});
   return allow;
 }
@@ -9359,9 +9364,10 @@ var MENU_GROUPS=[
   ]}
 ];
 function menuGroupsFor(role){
-  if(role==="agle"){
+  if(role==="chef_secteur"){
     /* Profil terrain (chef de secteur) : acc\u00e8s direct au strict n\u00e9cessaire,
-       aucun tableau de bord ni menu d'administration. */
+       aucun tableau de bord ni menu d'administration. AGLE (responsable de
+       zone) garde le menu complet ci-dessous, comme avant. */
     return [{id:"g-terrain", icon:MI.cube, label:"Mon terrain", items:[
       {id:"compte",   icon:MI.cube, label:"Comptage / Stock"},
       {id:"consigne", icon:MI.clip, label:"Inventaire consignes"}
