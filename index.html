@@ -8337,7 +8337,10 @@ function openPwdModal(forced){
 }
 $("btn-pwd").onclick=function(){openPwdModal(false);};
 $("pm-cancel").onclick=function(){$("pwd-modal").classList.remove("open");};
-$("pm-ok").onclick=function(){api("password","POST",{old:$("pm-old").value,new:$("pm-new").value}).then(function(){$("pwd-modal").classList.remove("open");toast("Mot de passe modifié.");if(ME)ME.mustChangePassword=false;_pwdForced=false;}).catch(function(e){var el=$("pm-err");el.textContent=e.message;el.classList.add("show");});};
+$("pm-ok").onclick=function(){api("password","POST",{old:$("pm-old").value,new:$("pm-new").value}).then(function(){$("pwd-modal").classList.remove("open");if(ME)ME.mustChangePassword=false;_pwdForced=false;
+  if(_probeMsg)toast("⚠️ Mot de passe changé pour cette session, mais probablement PAS conservé sur cet appareil ("+_probeMsg.split(".")[0]+"). Il faudra sans doute le refaire à la prochaine ouverture.");
+  else toast("Mot de passe modifié.");
+}).catch(function(e){var el=$("pm-err");el.textContent=e.message;el.classList.add("show");});};
 
 /* ============================================================
    ENREGISTREMENT RETOUR CONSIGNES (palettes EPAL)
