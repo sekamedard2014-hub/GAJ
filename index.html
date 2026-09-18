@@ -3499,9 +3499,10 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
         </div>
 
         <!-- Administrateur : choix du mode de chargement -->
-        <div id="gate-admin-mode" class="hidden" style="display:flex;gap:6px;justify-content:center;margin:2px 0 10px">
+        <div id="gate-admin-mode" class="hidden" style="display:flex;gap:6px;justify-content:center;margin:2px 0 10px;flex-wrap:wrap">
           <button class="btn btn-sm gate-mode-btn" id="gate-mode-files" type="button">📦 Fichiers sources</button>
           <button class="btn btn-sm gate-mode-btn" id="gate-mode-json" type="button">🗃️ Fichier .json</button>
+          <button class="btn btn-sm" id="gate-demo" type="button" title="Charge un jeu d'articles fictifs pour tester l'application sans fichiers réels">🧪 Tester avec des données de démonstration</button>
         </div>
 
         <!-- Administrateur : extractions sources -->
@@ -8082,11 +8083,24 @@ function importSup(file){gateMark("sup");
     api("reference","POST",{kind:"supports",name:file.name,data:out,mapping:m2}).then(loadData).then(function(){toast(out.length+" supports importés.");renderRefMeta();});});}
 function bindDrop(dropId,fileId,handler){var d=$(dropId),f=$(fileId);d.onclick=function(){f.click();};f.onchange=function(e){if(e.target.files[0])handler(e.target.files[0]);e.target.value="";};}
 function renderRefMeta(){if(!REF_READY)gateSync();if(!DATA)return;$("m-cat").textContent=DATA.meta.cat?DATA.meta.cat.count+" art. · "+DATA.meta.cat.when:"aucun";$("m-pick").textContent=DATA.meta.pick?DATA.meta.pick.count+" lignes · "+(DATA.meta.pick.at?fmtDT(DATA.meta.pick.at):DATA.meta.pick.when):"aucun";$("m-sup").textContent=DATA.meta.sup?DATA.meta.sup.count+" supports":"aucun";}
-$("btn-demo").onclick=function(){
+function loadDemoData(){
   var cat=[],pk={},sup=[],names=["Riz 5kg","Huile 1L","Sucre 1kg","Lait UHT","Café 250g","Croquettes 3kg","Gel douche","Lessive 3L"],seed=7;
   function rnd(){seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;}
   Object.keys(ZONES).forEach(function(z){ZONES[z].allees.forEach(function(al){for(var i=1;i<=3;i++){var code="DEMO-"+al+"-"+i,pick=2+Math.floor(rnd()*8);pk[code]=pick;var ns=Math.floor(rnd()*3),ss=0;for(var s=1;s<=ns;s++){var q=30+Math.floor(rnd()*100);ss+=q;sup.push({code:code,support:"PAL-"+al+"-"+i+"-"+s,emp:al+"-"+(2+Math.floor(rnd()*20))+"-"+s,qtyTheo:q});}cat.push({code:code,designation:names[Math.floor(rnd()*names.length)],zone:z,allee:al,prix:300+Math.floor(rnd()*50)*50,stockTheorique:pick+ss,classe:rnd()<.3?"A":(rnd()<.6?"B":"C"),pcb:6+Math.floor(rnd()*6)});}});});
-  api("reference","POST",{kind:"catalogue",name:"démo",data:cat}).then(function(){return api("reference","POST",{kind:"picking",name:"démo",data:pk});}).then(function(){return api("reference","POST",{kind:"supports",name:"démo",data:sup});}).then(loadData).then(function(){toast("Démo chargée ("+cat.length+" articles).");renderRefMeta();});};
+  return api("reference","POST",{kind:"catalogue",name:"démo",data:cat}).then(function(){return api("reference","POST",{kind:"picking",name:"démo",data:pk});}).then(function(){return api("reference","POST",{kind:"supports",name:"démo",data:sup});}).then(function(){
+    /* La démo doit permettre de tester sans fichiers réels : on marque
+       nous-mêmes les sources comme acquises pour déverrouiller l'accès,
+       exactement comme le ferait un vrai import de fichier. */
+    gateMark("cat");gateMark("pick");gateMark("sup");gateMark("ref");
+    return loadData();
+  }).then(function(){
+    toast("Démo chargée ("+cat.length+" articles).");
+    if(typeof renderRefMeta==="function")renderRefMeta();
+    if(!REF_READY){unlockApp();}else{gateSync();}
+  });
+}
+$("btn-demo").onclick=loadDemoData;
+if($("gate-demo"))$("gate-demo").onclick=loadDemoData;
 
 /* ===================================================================
    UTILISATEURS (conservé de V1)
