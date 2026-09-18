@@ -4492,6 +4492,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
 <div id="pwd-modal" class="modal-bg">
   <div class="modal-box" style="max-width:340px">
     <h3>🔑 Changer mon mot de passe</h3>
+    <div class="login-err show" id="pm-forced" style="display:none;margin-bottom:10px">⚠️ Ce compte utilise encore le mot de passe par défaut. Choisissez-en un nouveau avant de continuer.</div>
     <div class="fgroup"><label>Ancien mot de passe</label><input type="password" id="pm-old"></div>
     <div class="fgroup"><label>Nouveau (min. 4 caractères)</label><input type="password" id="pm-new"></div>
     <div class="login-err" id="pm-err"></div>
@@ -4660,8 +4661,8 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
   function defaultDB() {
     return {
       users: [
-        { id: "u_admin", matricule: "ESEKA", numero: "", nom: "MEDARD SEKA", fonction: "Administrateur", role: "admin", sectors: [], password: hashPwd("Medard@1983") },
-        { id: "u_std", matricule: "User", numero: "", nom: "UTILISATEUR", fonction: "Opérateur", role: "responsable", sectors: [], password: hashPwd("123") }
+        { id: "u_admin", matricule: "ADMIN", numero: "", nom: "Administrateur", fonction: "Administrateur", role: "admin", sectors: [], password: hashPwd("ChangeMe123"), mustChangePassword: true },
+        { id: "u_std", matricule: "USER", numero: "", nom: "Utilisateur", fonction: "Opérateur", role: "responsable", sectors: [], password: hashPwd("ChangeMe123"), mustChangePassword: true }
       ],
       catalogue: [], picking: {}, supports: [], om: [], mapping: { catalogue: null, picking: null, supports: null },
       counts: {}, supcounts: {}, suploc: {}, invest: {}, regule: {}, countmeta: {}, pickOverride: {}, rowLocked: {}, consignes: {},
@@ -4796,7 +4797,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
   function save(heavy) { saveLight(); if (heavy) saveRef(); }
   try { window.addEventListener("beforeunload", saveLightNow); } catch (e) {}
   // (référentiel désormais persisté dans IndexedDB, voir plus bas)
-  // Mise en production : compte administrateur unique (ESEKA) — purge de tous les autres comptes
+  // Mise en production : compte administrateur unique (ADMIN) — purge de tous les autres comptes
   try {
     if (!localStorage.getItem("gaj_login_mig_v4")) {
       DB.users = defaultDB().users;
@@ -4807,7 +4808,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
     // Ajout du compte utilisateur standard sur les postes deja initialises
     if (!localStorage.getItem("gaj_login_mig_v5")) {
       var _hasStd = DB.users.some(function (u) { return String(u.matricule || "").toLowerCase() === "user"; });
-      if (!_hasStd) DB.users.push({ id: "u_std", matricule: "User", numero: "", nom: "UTILISATEUR", fonction: "Op\u00e9rateur", role: "responsable", sectors: [], password: hashPwd("123") });
+      if (!_hasStd) DB.users.push({ id: "u_std", matricule: "USER", numero: "", nom: "Utilisateur", fonction: "Op\u00e9rateur", role: "responsable", sectors: [], password: hashPwd("ChangeMe123"), mustChangePassword: true });
       localStorage.setItem("gaj_login_mig_v5", "1");
       saveLightNow();
     }
@@ -4861,7 +4862,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
 
   function userByMat(m) { m = String(m || "").trim().toLowerCase(); return DB.users.find(function (u) { return String(u.matricule).toLowerCase() === m || (u.numero && String(u.numero).toLowerCase() === m); }); }
   function userById(id) { return DB.users.find(function (u) { return u.id === id; }); }
-  function publicUser(u) { return { id: u.id, matricule: u.matricule, numero: u.numero || "", nom: u.nom, fonction: u.fonction, role: u.role, sectors: u.sectors || [], lastLogin: u.lastLogin || null, loginCount: u.loginCount || 0 }; }
+  function publicUser(u) { return { id: u.id, matricule: u.matricule, numero: u.numero || "", nom: u.nom, fonction: u.fonction, role: u.role, sectors: u.sectors || [], lastLogin: u.lastLogin || null, loginCount: u.loginCount || 0, mustChangePassword: !!u.mustChangePassword }; }
   function scopeOf(u) {
     if (!u) return { all: false, sectors: [], allees: [] };
     // Périmètre complet pour TOUS les utilisateurs : chacun peut inventorier toutes les zones/allées
@@ -4928,7 +4929,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
     if (path === "password") {
       if (cur.password !== hashPwd(b.old)) throw err("ancien mot de passe incorrect");
       if (!b.new || b.new.length < 4) throw err("nouveau mot de passe trop court");
-      cur.password = hashPwd(b.new); save(); log("changement_mdp"); return { ok: true };
+      cur.password = hashPwd(b.new); delete cur.mustChangePassword; save(); log("changement_mdp"); return { ok: true };
     }
     if (path === "users") {
       if (cur.role !== "admin") throw err("réservé administrateur");
@@ -4936,7 +4937,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       if (method === "POST") {
         if (!b.matricule || !b.nom) throw err("matricule et nom requis");
         if (userByMat(b.matricule)) throw err("matricule déjà utilisé");
-        var nu = { id: uid("u_"), matricule: b.matricule.trim(), numero: (b.numero || "").trim(), nom: b.nom.trim(), fonction: b.fonction || "", role: ["admin", "responsable", "agle"].indexOf(b.role) >= 0 ? b.role : "responsable", sectors: Array.isArray(b.sectors) ? b.sectors : [], password: hashPwd(b.password || b.numero || "1234") };
+        var nu = { id: uid("u_"), matricule: b.matricule.trim(), numero: (b.numero || "").trim(), nom: b.nom.trim(), fonction: b.fonction || "", role: ["admin", "responsable", "agle"].indexOf(b.role) >= 0 ? b.role : "responsable", sectors: Array.isArray(b.sectors) ? b.sectors : [], password: hashPwd(b.password || b.numero || "1234"), mustChangePassword: !b.password };
         DB.users.push(nu); save(); log("création_utilisateur", nu.matricule + " · " + nu.nom); return { user: publicUser(nu) };
       }
       if (method === "PUT") {
@@ -5258,6 +5259,7 @@ function doLogin(){
     ME=r.user;SCOPE=r.scope;ZONES=r.zones;SECTORS=r.sectors;blind=r.blind;
     loadAnomalies();loadInvStatus();
     enterApp();
+    if(ME.mustChangePassword)openPwdModal(true);
   }).catch(function(e){var el=$("lg-err");el.textContent="Identifiants incorrects.";el.classList.add("show");});
 }
 function onLoggedOut(){ME=null;DATA=null;window.REF_READY=false;try{document.body.classList.remove("locked");}catch(e){}
@@ -8326,9 +8328,16 @@ function hardResetApp(){
 if($("btn-loadref"))$("btn-loadref").onclick=function(){$("file-ref").click();};
 
 /* ---------- Mot de passe ---------- */
-$("btn-pwd").onclick=function(){$("pwd-modal").classList.add("open");$("pm-old").value="";$("pm-new").value="";$("pm-err").classList.remove("show");};
+var _pwdForced=false;
+function openPwdModal(forced){
+  _pwdForced=!!forced;
+  $("pwd-modal").classList.add("open");$("pm-old").value="";$("pm-new").value="";$("pm-err").classList.remove("show");
+  $("pm-forced").style.display=_pwdForced?"block":"none";
+  $("pm-cancel").style.display=_pwdForced?"none":"";
+}
+$("btn-pwd").onclick=function(){openPwdModal(false);};
 $("pm-cancel").onclick=function(){$("pwd-modal").classList.remove("open");};
-$("pm-ok").onclick=function(){api("password","POST",{old:$("pm-old").value,new:$("pm-new").value}).then(function(){$("pwd-modal").classList.remove("open");toast("Mot de passe modifié.");}).catch(function(e){var el=$("pm-err");el.textContent=e.message;el.classList.add("show");});};
+$("pm-ok").onclick=function(){api("password","POST",{old:$("pm-old").value,new:$("pm-new").value}).then(function(){$("pwd-modal").classList.remove("open");toast("Mot de passe modifié.");if(ME)ME.mustChangePassword=false;_pwdForced=false;}).catch(function(e){var el=$("pm-err");el.textContent=e.message;el.classList.add("show");});};
 
 /* ============================================================
    ENREGISTREMENT RETOUR CONSIGNES (palettes EPAL)
