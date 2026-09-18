@@ -3741,6 +3741,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
           <span class="infob" tabindex="0" aria-label="À quoi sert l'export Excel"><span aria-hidden="true">i</span><span class="infob-tip"><span class="it-h">📊 Export Excel</span>Exporte la même liste d'écarts au format tableur (<b>.xlsx</b>) pour l'archivage et le suivi des régularisations.</span></span>
           <button class="btn btn-gold btn-sm" id="btn-sign-ecarts" title="Valider les écarts par signature électronique, sans impression papier">✍️ Valider numériquement</button>
           <button class="btn btn-sm" id="btn-sign-hist" title="Historique des validations numériques">🕐 Historique</button>
+          <button class="btn btn-gold btn-sm" id="btn-export-terrain" title="Enregistre votre comptage dans un fichier à transmettre à l'administrateur">💾 Terminer &amp; exporter mon comptage</button>
           <button class="btn btn-sm btn-danger" id="btn-reset" style="margin-left:auto">🔄 Réinitialiser</button>
         </div>
         <div id="perim"></div>
@@ -4088,6 +4089,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
           <button class="btn btn-sm" id="cs-print">🖨️ Rapport PDF</button>
           <button class="btn btn-sm" id="cs-sheets">📋 Fiches de comptage (papier, secours)</button>
           <button class="btn btn-gold btn-sm" id="cs-sign" title="Clôturer l'inventaire par signature électronique, sans impression papier">✍️ Clôturer numériquement</button>
+          <button class="btn btn-gold btn-sm" id="cs-export-terrain" title="Enregistre votre comptage dans un fichier à transmettre à l'administrateur">💾 Terminer &amp; exporter mon comptage</button>
           <span class="ct" id="cs-info"></span>
         </div>
         <div class="ct" style="margin-top:8px">Code palette EPAL : <b style="color:var(--navy-dark)">100514060</b></div>
@@ -4279,7 +4281,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
       <div class="card">
         <div class="card-header"><h3>👥 Comptes et allées suivies</h3>
           <div class="row" style="gap:8px">
-            <button class="btn btn-sm btn-gold" data-open="u-form-modal">➕ Ajouter / modifier un utilisateur</button>
+            <button class="btn btn-sm btn-gold" id="u-form-open" data-open="u-form-modal">➕ Ajouter / modifier un utilisateur</button>
             <button class="btn btn-sm" data-open="ua-modal">🛣️ Utilisateurs &amp; allées suivies</button>
           </div>
         </div>
@@ -4405,11 +4407,24 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
           <input id="u-num" placeholder="N° matricule" style="max-width:120px">
           <input id="u-nom" placeholder="Nom & prénom" style="max-width:200px">
           <input id="u-fonc" placeholder="Fonction" style="max-width:160px">
-          <select id="u-role" style="max-width:180px"><option value="responsable">Responsable de zone</option><option value="admin">Administrateur</option><option value="agle">AGLE</option></select>
+          <select id="u-role" style="max-width:180px"><option value="responsable">Responsable de zone</option><option value="admin">Administrateur</option><option value="agle">Chef de secteur (terrain)</option></select>
           <input type="hidden" id="u-sec-removed">
           <input id="u-pwd" placeholder="Mot de passe" style="max-width:180px">
           <button class="btn btn-gold btn-sm" id="u-save">Enregistrer</button>
           <button class="btn btn-sm" id="u-clear">Nouveau</button>
+        </div>
+        <div id="u-allees-wrap" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--navy-line)">
+          <style>
+            #u-allees-list .ua-zone{border:1px solid var(--navy-line);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:rgba(45,46,131,.03)}
+            #u-allees-list .ua-zh{font-size:12px;font-weight:700;color:var(--navy-dark);margin-bottom:6px}
+            #u-allees-list .ua-al{display:flex;flex-wrap:wrap;gap:6px}
+            #u-allees-list .ua-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--navy-line);background:#fff;border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:700;color:var(--muted-2);cursor:pointer;user-select:none;transition:.12s}
+            #u-allees-list .ua-chip:hover{border-color:var(--gold-ink)}
+            #u-allees-list .ua-chip.on{background:rgba(255,204,0,.2);border-color:var(--gold);color:var(--navy-dark)}
+            #u-allees-list .ua-chip input{width:auto;margin:0;accent-color:var(--navy)}
+          </style>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Allée(s) gérée(s) par ce chef de secteur — il n'aura accès qu'à ces allées, en Comptage/Stock comme en Inventaire consignes</label>
+          <div id="u-allees-list"></div>
         </div>
       </div>
     </div>
@@ -4886,10 +4901,14 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
 
   function userByMat(m) { m = String(m || "").trim().toLowerCase(); return DB.users.find(function (u) { return String(u.matricule).toLowerCase() === m || (u.numero && String(u.numero).toLowerCase() === m); }); }
   function userById(id) { return DB.users.find(function (u) { return u.id === id; }); }
-  function publicUser(u) { return { id: u.id, matricule: u.matricule, numero: u.numero || "", nom: u.nom, fonction: u.fonction, role: u.role, sectors: u.sectors || [], lastLogin: u.lastLogin || null, loginCount: u.loginCount || 0, mustChangePassword: !!u.mustChangePassword }; }
+  function publicUser(u) { return { id: u.id, matricule: u.matricule, numero: u.numero || "", nom: u.nom, fonction: u.fonction, role: u.role, sectors: u.sectors || [], allees: u.allees || [], lastLogin: u.lastLogin || null, loginCount: u.loginCount || 0, mustChangePassword: !!u.mustChangePassword }; }
   function scopeOf(u) {
     if (!u) return { all: false, sectors: [], allees: [] };
-    // Périmètre complet pour TOUS les utilisateurs : chacun peut inventorier toutes les zones/allées
+    // Profil terrain (chef de secteur) : limité aux allées qui lui sont explicitement attribuées.
+    if (u.role === "agle" && Array.isArray(u.allees) && u.allees.length) {
+      return { all: false, sectors: [], allees: u.allees.slice() };
+    }
+    // Périmètre complet pour les autres profils : chacun peut inventorier toutes les zones/allées
     var all = []; for (var z in ZONES) all = all.concat(ZONES[z].allees);
     return { all: true, sectors: SECTORS.map(function (s) { return s.id; }), allees: all };
   }
@@ -4961,7 +4980,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       if (method === "POST") {
         if (!b.matricule || !b.nom) throw err("matricule et nom requis");
         if (userByMat(b.matricule)) throw err("matricule déjà utilisé");
-        var nu = { id: uid("u_"), matricule: b.matricule.trim(), numero: (b.numero || "").trim(), nom: b.nom.trim(), fonction: b.fonction || "", role: ["admin", "responsable", "agle"].indexOf(b.role) >= 0 ? b.role : "responsable", sectors: Array.isArray(b.sectors) ? b.sectors : [], password: hashPwd(b.password || b.numero || "1234"), mustChangePassword: !b.password };
+        var nu = { id: uid("u_"), matricule: b.matricule.trim(), numero: (b.numero || "").trim(), nom: b.nom.trim(), fonction: b.fonction || "", role: ["admin", "responsable", "agle"].indexOf(b.role) >= 0 ? b.role : "responsable", sectors: Array.isArray(b.sectors) ? b.sectors : [], allees: Array.isArray(b.allees) ? b.allees : [], password: hashPwd(b.password || b.numero || "1234"), mustChangePassword: !b.password };
         DB.users.push(nu); save(); log("création_utilisateur", nu.matricule + " · " + nu.nom); return { user: publicUser(nu) };
       }
       if (method === "PUT") {
@@ -4972,6 +4991,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
         if (b.fonction != null) u2.fonction = b.fonction;
         if (b.role && ["admin", "responsable", "agle"].indexOf(b.role) >= 0) u2.role = b.role;
         if (Array.isArray(b.sectors)) u2.sectors = b.sectors;
+        if (Array.isArray(b.allees)) u2.allees = b.allees;
         if (b.password) u2.password = hashPwd(b.password);
         save(); log("modification_utilisateur", u2.matricule); return { user: publicUser(u2) };
       }
@@ -5337,6 +5357,15 @@ function enterApp(){
   curZone="";curAllee="";curTravee="";curFournisseur="";
   if(!SCOPE.all&&SCOPE.sectors.length){var sec=SECTORS.find(function(s){return SCOPE.sectors.indexOf(s.id)>=0;});
     if(sec){curZone=sec.zone;if($("sel-zone"))$("sel-zone").value=sec.zone;fillAllee();}}
+  else if(!SCOPE.all&&SCOPE.allees&&SCOPE.allees.length){
+    /* Chef de secteur : on se place directement sur sa zone, et sur son
+       allée si elle est unique — il n'a le plus souvent qu'une ou deux
+       allées à gérer. */
+    curZone=SCOPE.allees[0].charAt(0);
+    if($("sel-zone"))$("sel-zone").value=curZone;
+    fillAllee();
+    if(SCOPE.allees.length===1){curAllee=SCOPE.allees[0];if($("sel-allee"))$("sel-allee").value=curAllee;}
+  }
   startIdle();
   lockApp();
 }
@@ -5726,7 +5755,8 @@ function selectTab(v){
 /* ---------- Zones / périmètre ---------- */
 function buildZoneSelect(){
   var zs=$("sel-zone");if(!zs)return;
-  var zones=Object.keys(ZONES).filter(function(z){return SCOPE.all||SECTORS.some(function(s){return s.zone===z&&SCOPE.sectors.indexOf(s.id)>=0;});});
+  var alleeZones={};(SCOPE.allees||[]).forEach(function(a){alleeZones[a.charAt(0)]=1;});
+  var zones=Object.keys(ZONES).filter(function(z){return SCOPE.all||SECTORS.some(function(s){return s.zone===z&&SCOPE.sectors.indexOf(s.id)>=0;})||alleeZones[z];});
   zs.innerHTML='<option value="">— Toutes mes zones —</option>'+zones.map(function(z){return '<option value="'+z+'">'+ZONES[z].name+' ('+z+')</option>';}).join("");
   zs.onchange=function(){curZone=zs.value;curAllee="";if($("sel-allee"))$("sel-allee").value="";fillAllee();renderTable();};
   $("sel-allee").onchange=function(){curAllee=$("sel-allee").value;renderTable();};
@@ -6093,8 +6123,8 @@ function jumpToConsZone(code){
   var key=CZ_ALL.filter(function(k){return nz(k)===target;})[0]||CZ_ALL.filter(function(k){return nz(k).indexOf(target)>=0||target.indexOf(nz(k))>=0;})[0];
   if(!key){toast("Zone/allée introuvable pour le code "+code+".");return;}
   var row=document.querySelector('#cs-body input[data-z="'+CSS.escape(key)+'"]');
-  if(row){row.scrollIntoView({block:"center"});row.focus();}
-  toast("Zone repérée : "+key);
+  if(row){row.scrollIntoView({block:"center"});row.focus();toast("Zone repérée : "+key);}
+  else toast("Zone "+key+" hors de votre périmètre.");
 }
 if($("cs-scan"))$("cs-scan").onclick=function(){
   openScanner("Visez le QR/étiquette de l'allée ou de la zone.",jumpToConsZone);
@@ -8054,17 +8084,35 @@ function loadUsers(){api("users").then(function(r){
   $("u-body").innerHTML=r.users.map(function(u){var per=u.role==="admin"?"tout":(u.sectors||[]).map(function(id){var s=SECTORS.find(function(x){return x.id===id;});return s?s.label:id;}).join(", ")||"—";
     var _al=(omAlleesMap()[u.id]||{}).allees||[];
     return "<tr><td>"+esc(u.matricule)+"</td><td>"+esc(u.numero||"")+"</td><td>"+esc(u.nom)+"</td><td>"+esc(u.fonction||"")+"</td><td><span class='tag "+u.role+"'>"+u.role+"</span></td><td class='ua-cell' title='"+esc(_al.join(', '))+"'>"+(_al.length?"<b>"+_al.length+"</b> \u00b7 "+esc(_al.length>8?(_al.slice(0,8).join(', ')+' +'+(_al.length-8)):_al.join(', ')):"<span class='ua-none'>aucune</span>")+"</td><td><button class='btn btn-xs' data-eu='"+u.id+"'>✎</button> "+(u.id==="u_admin"?"":"<button class='btn btn-xs btn-danger' data-du='"+u.id+"'>✕</button>")+"</td></tr>";}).join("");window._users=r.users;});}
+function renderUserAlleeOptions(checked){
+  checked=checked||[];
+  var el=$("u-allees-list");if(!el)return;
+  el.innerHTML=Object.keys(ZONES).map(function(z){
+    var al=ZONES[z].allees.map(function(a){
+      return '<label class="ua-chip'+(checked.indexOf(a)>=0?" on":"")+'"><input type="checkbox" value="'+esc(a)+'"'+(checked.indexOf(a)>=0?" checked":"")+'>'+esc(a)+'</label>';
+    }).join("");
+    return '<div class="ua-zone"><div class="ua-zh">'+esc(ZONES[z].name)+' ('+esc(z)+')</div><div class="ua-al">'+al+'</div></div>';
+  }).join("");
+  Array.prototype.forEach.call(el.querySelectorAll('input[type="checkbox"]'),function(cb){
+    cb.addEventListener("change",function(){cb.closest(".ua-chip").classList.toggle("on",cb.checked);});
+  });
+}
+function toggleUserAlleesWrap(){var w=$("u-allees-wrap");if(w)w.style.display=($("u-role").value==="agle")?"block":"none";}
+if($("u-role"))$("u-role").addEventListener("change",toggleUserAlleesWrap);
 $("u-body").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
-  if(b.dataset.eu){var u=window._users.find(function(x){return x.id===b.dataset.eu;});editUserId=u.id;$("u-mat").value=u.matricule;$("u-num").value=u.numero||"";$("u-nom").value=u.nom;$("u-fonc").value=u.fonction||"";$("u-role").value=u.role;$("u-pwd").value="";toast("Modification de "+u.matricule);}
+  if(b.dataset.eu){var u=window._users.find(function(x){return x.id===b.dataset.eu;});editUserId=u.id;$("u-mat").value=u.matricule;$("u-num").value=u.numero||"";$("u-nom").value=u.nom;$("u-fonc").value=u.fonction||"";$("u-role").value=u.role;$("u-pwd").value="";renderUserAlleeOptions(u.allees||[]);toggleUserAlleesWrap();toast("Modification de "+u.matricule);}
   else if(b.dataset.du){if(!confirm("Supprimer cet utilisateur ?"))return;api("users","DELETE",{id:b.dataset.du}).then(loadUsers).then(function(){toast("Supprimé.");});}});
 $("u-save").onclick=function(){
   var secs=[];   /* le perimetre par secteur a ete retire du formulaire */
-  var body={matricule:$("u-mat").value,numero:$("u-num").value,nom:$("u-nom").value,fonction:$("u-fonc").value,role:$("u-role").value,sectors:secs,password:$("u-pwd").value};
+  var allees=[];if($("u-role").value==="agle")Array.prototype.forEach.call($("u-allees-list").querySelectorAll('input[type="checkbox"]:checked'),function(cb){allees.push(cb.value);});
+  var body={matricule:$("u-mat").value,numero:$("u-num").value,nom:$("u-nom").value,fonction:$("u-fonc").value,role:$("u-role").value,sectors:secs,allees:allees,password:$("u-pwd").value};
   if(!body.matricule||!body.nom){toast("Initiales et nom requis.");return;}
+  if(body.role==="agle"&&!allees.length){toast("Sélectionnez au moins une allée pour ce chef de secteur.");return;}
   var p=editUserId?api("users","PUT",Object.assign({id:editUserId},body)):api("users","POST",body);
   p.then(function(){toast("Enregistré.");clearUserForm();loadUsers();}).catch(function(e){toast(e.message);});};
-function clearUserForm(){editUserId=null;["u-mat","u-num","u-nom","u-fonc","u-pwd"].forEach(function(id){$(id).value="";});$("u-role").value="responsable";Array.prototype.forEach.call($("u-sec").options,function(o){o.selected=false;});}
+function clearUserForm(){editUserId=null;["u-mat","u-num","u-nom","u-fonc","u-pwd"].forEach(function(id){$(id).value="";});$("u-role").value="responsable";renderUserAlleeOptions([]);toggleUserAlleesWrap();}
 $("u-clear").onclick=clearUserForm;
+if($("u-form-open"))$("u-form-open").addEventListener("click",clearUserForm);
 function loadLog(){api("log").then(function(r){$("log-body").innerHTML=r.log.map(function(l){return "<tr><td style='font-size:11px;white-space:nowrap'>"+esc(new Date(l.at).toLocaleString("fr-FR"))+"</td><td>"+esc(l.user)+"</td><td>"+esc(l.action)+"</td><td style='font-size:11px'>"+esc(l.detail)+"</td></tr>";}).join("");}).catch(function(){});}
 
 /* ===================================================================
@@ -8104,7 +8152,18 @@ function csLoad(p){_csPeriod=p;var saved=_cons[p];CONS=saved?JSON.parse(JSON.str
   $("cs-rack").value=(CONS.rackCyrus!=null?CONS.rackCyrus:"");$("cs-mach").value=(CONS.machCyrus!=null?CONS.machCyrus:"");$("cs-prix").value=(CONS.prix!=null?CONS.prix:7500);
   $("cs-info").textContent=saved?("Enregistré le "+new Date(saved.at).toLocaleDateString("fr-FR")+(saved.by?(" par "+saved.by):"")):"Nouveau — non encore enregistré";
   csBuildRows();csRecalc();}
-function csBuildRows(){$("cs-body").innerHTML=CZ_ALL.map(function(k){var z=CONS.zones[k]||{},rack=CZ_RACK.indexOf(k)>=0;
+function csNormZ(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");}
+function csAllowedKeys(){
+  /* Chef de secteur : ne peut saisir que ses allées attribuées. Les autres
+     profils (périmètre complet) voient toutes les zones, comme avant. */
+  if(!ME||ME.role!=="agle"||!SCOPE||SCOPE.all)return null;
+  var allow={};(SCOPE.allees||[]).forEach(function(a){allow[csNormZ(a)]=1;});
+  return allow;
+}
+function csBuildRows(){
+  var allow=csAllowedKeys();
+  var keys=allow?CZ_ALL.filter(function(k){return allow[csNormZ(k)];}):CZ_ALL;
+  $("cs-body").innerHTML=keys.map(function(k){var z=CONS.zones[k]||{},rack=CZ_RACK.indexOf(k)>=0;
   function inp(f){return '<input type="number" min="0" data-z="'+esc(k)+'" data-f="'+f+'" value="'+((z[f]!==""&&z[f]!=null)?esc(String(z[f])):"")+'">';}
   var dash='<span class="dis">—</span>';
   if(rack){
@@ -8282,6 +8341,8 @@ $("btn-export").onclick=function(){
   downloadText(name,window.GAJ.exportDB());
   toast("Base sauvegardée : "+name);
 };
+if($("btn-export-terrain"))$("btn-export-terrain").onclick=function(){$("btn-export").click();};
+if($("cs-export-terrain"))$("cs-export-terrain").onclick=function(){$("btn-export").click();};
 if($("btn-import"))$("btn-import").onclick=function(){$("file-db").click();};
 if($("file-db"))$("file-db").onchange=function(e){var f=e.target.files[0];if(!f||!window.GAJ)return;if(confirm("Remplacer TOUTE la base actuelle par ce fichier ?"))readJSON(f,function(obj){try{window.GAJ.importReplace(obj);toast("Base chargée.");loadData().then(function(){if(!REF_READY)gateSync();});loadUsers();}catch(x){toast(x.message);}});e.target.value="";};
 if($("btn-merge"))$("btn-merge").onclick=function(){$("file-merge").click();};
@@ -9298,6 +9359,14 @@ var MENU_GROUPS=[
   ]}
 ];
 function menuGroupsFor(role){
+  if(role==="agle"){
+    /* Profil terrain (chef de secteur) : acc\u00e8s direct au strict n\u00e9cessaire,
+       aucun tableau de bord ni menu d'administration. */
+    return [{id:"g-terrain", icon:MI.cube, label:"Mon terrain", items:[
+      {id:"compte",   icon:MI.cube, label:"Comptage / Stock"},
+      {id:"consigne", icon:MI.clip, label:"Inventaire consignes"}
+    ]}];
+  }
   var g=MENU_GROUPS.map(function(x){return {id:x.id,icon:x.icon,label:x.label,items:x.items.slice()};});
   if(role==="admin"){
     g.push({id:"g-admin", icon:MI.shieldLock, label:"Administration", admin:true, items:[
