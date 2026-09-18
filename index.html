@@ -3436,6 +3436,10 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
   .count-input{min-height:40px}
   .btn,.pill{min-height:40px;padding-top:9px;padding-bottom:9px}
 }
+
+/* Comptage en aveugle pour le chef de secteur : théorique, écart et
+   valeur ne lui sont ni montrés ni modifiables. */
+body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{display:none}
 </style>
 </head>
 <body>
@@ -3715,10 +3719,12 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
       <div class="kpis">
         <div class="kpi"><div class="l">Références</div><div class="v" id="k-ref">0</div></div>
         <div class="kpi green-kpi"><div class="l">Comptées</div><div class="v" id="k-cnt">0</div></div>
+        <span id="terrain-hide-kpis" style="display:contents">
         <div class="kpi red-kpi"><div class="l">Écart Picking</div><div class="v" id="k-gap">0</div></div>
         <div class="kpi"><div class="l">Écart Valeur (absolue)</div><div class="v" id="k-gapval">—</div></div>
         <div class="kpi"><div class="l">Écart Valeur (net)</div><div class="v" id="k-gapvalnet">—</div></div>
         <div class="kpi blue-kpi"><div class="l">Régules à faire</div><div class="v" id="k-rg">0</div></div>
+        </span>
       </div>
       <div class="card">
         <div class="row cmp-filters" style="gap:8px;margin-bottom:8px;flex-wrap:nowrap;overflow-x:auto">
@@ -3749,6 +3755,11 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
         </div>
         <div id="perim"></div>
         <div id="aisle-progress"></div>
+        <div class="pills" id="pills-travee" style="margin-bottom:0">
+          <button class="pill active" data-tv="">Toute l'allée</button>
+          <button class="pill" data-tv="G">Travée Gauche</button>
+          <button class="pill" data-tv="D">Travée Droite</button>
+        </div>
         <div class="pills" id="pills">
           <button class="pill active" data-f="all">Tous <span class="ct" id="ct-all">0</span></button>
           <button class="pill" data-f="gaps">Écarts <span class="ct" id="ct-gaps">0</span></button>
@@ -3760,12 +3771,12 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
         <div class="tbl-scroll">
           <table class="gridtab cmptab">
             <colgroup><col style="width:4%"><col style="width:10%"><col style="width:10%"><col style="width:28%"><col style="width:5%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:8%"><col style="width:8%"></colgroup>
-            <thead><tr><th></th><th>Adresse</th><th>Code</th><th>Désignation</th><th class="cen">Cl.</th><th class="cen">Théo pick.</th><th class="cen">Compté</th><th class="cen">Écart</th><th class="cen">Valeur</th><th class="cen">Statut</th></tr></thead>
+            <thead><tr><th></th><th>Adresse</th><th>Code</th><th>Désignation</th><th class="cen">Cl.</th><th class="cen m-tp">Théo pick.</th><th class="cen">Compté</th><th class="cen m-ec">Écart</th><th class="cen m-val">Valeur</th><th class="cen">Statut</th></tr></thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
         <div id="empty" style="text-align:center;color:var(--muted);padding:24px;display:none">Aucune référence — importez le catalogue (Administration → Référentiel) ou affinez les filtres.</div>
-        <p style="color:var(--muted-2);font-size:11px;margin-top:8px">La colonne <b>« Théo pick. »</b> est modifiable par <b>tous les utilisateurs</b> (hors mode masqué) : elle permet de corriger une quantité théorique erronée pour un article — l'<b>écart et la valeur</b> se recalculent aussitôt sur cette base corrigée. Dès que <b>Compté = Théo pick.</b>, la ligne se grise et se <b>verrouille</b> (🔒) définitivement, même si un nouveau fichier IMP138 est réimporté ensuite. Tant qu'il reste un <b>écart réel</b>, la correction reste au contraire modifiable et se conserve d'un import à l'autre, pour ne jamais perdre le travail de régularisation en cours.</p>
+        <p id="m-tp-help" style="color:var(--muted-2);font-size:11px;margin-top:8px">La colonne <b>« Théo pick. »</b> est modifiable par <b>tous les utilisateurs</b> (hors mode masqué) : elle permet de corriger une quantité théorique erronée pour un article — l'<b>écart et la valeur</b> se recalculent aussitôt sur cette base corrigée. Dès que <b>Compté = Théo pick.</b>, la ligne se grise et se <b>verrouille</b> (🔒) définitivement, même si un nouveau fichier IMP138 est réimporté ensuite. Tant qu'il reste un <b>écart réel</b>, la correction reste au contraire modifiable et se conserve d'un import à l'autre, pour ne jamais perdre le travail de régularisation en cours.</p>
       </div>
     </div>
 
@@ -4428,7 +4439,7 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
             #u-allees-list .ua-chip.on{background:rgba(255,204,0,.2);border-color:var(--gold);color:var(--navy-dark)}
             #u-allees-list .ua-chip input{width:auto;margin:0;accent-color:var(--navy)}
           </style>
-          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Allée(s) gérée(s) par ce chef de secteur — il n'aura accès qu'à ces allées, en Comptage/Stock comme en Inventaire consignes</label>
+          <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">Allée(s) habituelle(s) de ce chef de secteur (facultatif) — pré-sélectionnée(s) à l'ouverture de l'application ; il peut néanmoins compter n'importe quelle autre allée si besoin</label>
           <div id="u-allees-list"></div>
         </div>
       </div>
@@ -4909,12 +4920,10 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
   function publicUser(u) { return { id: u.id, matricule: u.matricule, numero: u.numero || "", nom: u.nom, fonction: u.fonction, role: u.role, sectors: u.sectors || [], allees: u.allees || [], lastLogin: u.lastLogin || null, loginCount: u.loginCount || 0, mustChangePassword: !!u.mustChangePassword }; }
   function scopeOf(u) {
     if (!u) return { all: false, sectors: [], allees: [] };
-    // Profil terrain (chef de secteur) : limité aux allées qui lui sont explicitement attribuées.
-    // AGLE = responsable de zone, périmètre complet comme les autres profils encadrants.
-    if (u.role === "chef_secteur" && Array.isArray(u.allees) && u.allees.length) {
-      return { all: false, sectors: [], allees: u.allees.slice() };
-    }
-    // Périmètre complet pour les autres profils : chacun peut inventorier toutes les zones/allées
+    // Tous les chefs de secteur peuvent compter n'importe quelle allée si besoin
+    // (renfort, absence d'un collègue...) : l'allée attribuée n'est qu'une
+    // allée par défaut à l'ouverture, pas une restriction d'accès.
+    // Périmètre complet pour tous les profils : chacun peut inventorier toutes les zones/allées
     var all = []; for (var z in ZONES) all = all.concat(ZONES[z].allees);
     return { all: true, sectors: SECTORS.map(function (s) { return s.id; }), allees: all };
   }
@@ -5059,7 +5068,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
           }
         }
       }
-      else if (b.field === "theopick") { if (b.value === "" || b.value == null) delete DB.pickOverride[b.code]; else DB.pickOverride[b.code] = b.value; }
+      else if (b.field === "theopick") { if (cur.role === "chef_secteur") throw err("réservé responsable/admin"); if (b.value === "" || b.value == null) delete DB.pickOverride[b.code]; else DB.pickOverride[b.code] = b.value; }
       else if (b.field === "sup") { DB.supcounts[b.code] = DB.supcounts[b.code] || {}; if (b.value === "" || b.value == null) delete DB.supcounts[b.code][b.key]; else DB.supcounts[b.code][b.key] = b.value; }
       else if (b.field === "loc") { DB.suploc[b.code] = DB.suploc[b.code] || {}; if (b.value) delete DB.suploc[b.code][b.key]; else DB.suploc[b.code][b.key] = false; }
       else if (b.field === "regule") { if (b.value) DB.regule[b.code] = b.value; else delete DB.regule[b.code]; }
@@ -5363,14 +5372,14 @@ function enterApp(){
   curZone="";curAllee="";curTravee="";curFournisseur="";
   if(!SCOPE.all&&SCOPE.sectors.length){var sec=SECTORS.find(function(s){return SCOPE.sectors.indexOf(s.id)>=0;});
     if(sec){curZone=sec.zone;if($("sel-zone"))$("sel-zone").value=sec.zone;fillAllee();}}
-  else if(!SCOPE.all&&SCOPE.allees&&SCOPE.allees.length){
-    /* Chef de secteur : on se place directement sur sa zone, et sur son
-       allée si elle est unique — il n'a le plus souvent qu'une ou deux
-       allées à gérer. */
-    curZone=SCOPE.allees[0].charAt(0);
+  else if(ME.role==="chef_secteur"&&ME.allees&&ME.allees.length){
+    /* Chef de secteur : on se place par défaut sur son allée habituelle,
+       mais il peut compter n'importe quelle autre allée si besoin — le
+       périmètre n'est pas restreint, ceci n'est qu'un point de départ. */
+    curZone=ME.allees[0].charAt(0);
     if($("sel-zone"))$("sel-zone").value=curZone;
     fillAllee();
-    if(SCOPE.allees.length===1){curAllee=SCOPE.allees[0];if($("sel-allee"))$("sel-allee").value=curAllee;}
+    if(ME.allees.length===1){curAllee=ME.allees[0];if($("sel-allee"))$("sel-allee").value=curAllee;}
   }
   /* Le chef de secteur garde ses deux écrans (Comptage/Stock, Inventaire
      consignes) mais pas les actions destructives, imprimables ou de
@@ -5380,6 +5389,9 @@ function enterApp(){
   if($("btn-reset"))$("btn-reset").style.display=isTerrain?"none":"";
   if($("terrain-hide-compte"))$("terrain-hide-compte").style.display=isTerrain?"none":"contents";
   if($("terrain-hide-consigne"))$("terrain-hide-consigne").style.display=isTerrain?"none":"contents";
+  if($("terrain-hide-kpis"))$("terrain-hide-kpis").style.display=isTerrain?"none":"contents";
+  document.body.classList.toggle("hide-theo-cols",isTerrain);
+  if($("m-tp-help"))$("m-tp-help").style.display=isTerrain?"none":"";
   startIdle();
   lockApp();
 }
@@ -5774,7 +5786,7 @@ function buildZoneSelect(){
   zs.innerHTML='<option value="">— Toutes mes zones —</option>'+zones.map(function(z){return '<option value="'+z+'">'+ZONES[z].name+' ('+z+')</option>';}).join("");
   zs.onchange=function(){curZone=zs.value;curAllee="";if($("sel-allee"))$("sel-allee").value="";fillAllee();renderTable();};
   $("sel-allee").onchange=function(){curAllee=$("sel-allee").value;renderTable();};
-  if($("sel-travee"))$("sel-travee").onchange=function(){curTravee=$("sel-travee").value;renderTable();};
+  if($("sel-travee"))$("sel-travee").onchange=function(){curTravee=$("sel-travee").value;if($("pills-travee"))Array.prototype.forEach.call($("pills-travee").querySelectorAll(".pill"),function(x){x.classList.toggle("active",x.dataset.tv===curTravee);});renderTable();};
   if($("sel-fournisseur"))$("sel-fournisseur").onchange=function(){curFournisseur=$("sel-fournisseur").value;renderTable();};
   fillAllee();
 }
@@ -5943,7 +5955,7 @@ function statusCell(a,m){var b='<span class="badge '+m.status+'">'+m.label+'</sp
 function ecartSpan(e){return e!=null?'<span class="ecart '+(e>0?"pos":(e<0?"neg":"zero"))+'">'+( e>0?"+":"")+e+'</span>':'<span class="ecart zero">—</span>';}
 function classeOf(a){var cfg=cycleCfg();var c=(cfg&&cfg.cls&&cfg.cls[a.allee])?String(cfg.cls[a.allee]).toUpperCase():up(a.classe);return (c==="A"||c==="B"||c==="C")?c:"B";}
 function theoPickCellHtml(a,m){
-  if(blind)return maskT(m.theoPick);
+  if(blind||(ME&&ME.role==="chef_secteur"))return maskT(m.theoPick);
   var canEdit=!!ME&&!m.locked;
   if(!canEdit)return (m.theoPick!=null?m.theoPick:"—");
   var vp=(DATA.pickOverride&&DATA.pickOverride[a.code]!=null)?DATA.pickOverride[a.code]:(m.theoPick!=null?m.theoPick:"");
@@ -6067,7 +6079,8 @@ $("tbody").addEventListener("click",function(e){var b=e.target.closest("button")
   else if(b.dataset.rgc)reguleClear(b.dataset.rgc);
   else if(b.dataset.an)openAnomalieFromEcart(b.dataset.an);});
 var _searchT;$("search").addEventListener("input",function(e){search=e.target.value;clearTimeout(_searchT);_searchT=setTimeout(renderTable,180);});
-$("pills").addEventListener("click",function(e){var p=e.target.closest(".pill");if(!p)return;filter=p.dataset.f;Array.prototype.forEach.call(document.querySelectorAll(".pill"),function(x){x.classList.toggle("active",x===p);});renderTable();});
+$("pills").addEventListener("click",function(e){var p=e.target.closest(".pill");if(!p)return;filter=p.dataset.f;Array.prototype.forEach.call($("pills").querySelectorAll(".pill"),function(x){x.classList.toggle("active",x===p);});renderTable();});
+if($("pills-travee"))$("pills-travee").addEventListener("click",function(e){var p=e.target.closest(".pill");if(!p)return;curTravee=p.dataset.tv;if($("sel-travee"))$("sel-travee").value=curTravee;Array.prototype.forEach.call($("pills-travee").querySelectorAll(".pill"),function(x){x.classList.toggle("active",x===p);});renderTable();});
 
 /* ============================================================
    Scan caméra (code-barres/QR) + Signature électronique
@@ -8134,7 +8147,6 @@ $("u-save").onclick=function(){
   var allees=[];if($("u-role").value==="chef_secteur")Array.prototype.forEach.call($("u-allees-list").querySelectorAll('input[type="checkbox"]:checked'),function(cb){allees.push(cb.value);});
   var body={matricule:$("u-mat").value,numero:$("u-num").value,nom:$("u-nom").value,fonction:$("u-fonc").value,role:$("u-role").value,sectors:secs,allees:allees,password:$("u-pwd").value};
   if(!body.matricule||!body.nom){toast("Initiales et nom requis.");return;}
-  if(body.role==="chef_secteur"&&!allees.length){toast("Sélectionnez au moins une allée pour ce chef de secteur.");return;}
   var p=editUserId?api("users","PUT",Object.assign({id:editUserId},body)):api("users","POST",body);
   p.then(function(){toast("Enregistré.");clearUserForm();loadUsers();}).catch(function(e){toast(e.message);});};
 function clearUserForm(){editUserId=null;["u-mat","u-num","u-nom","u-fonc","u-pwd"].forEach(function(id){$(id).value="";});$("u-role").value="responsable";renderUserAlleeOptions([]);toggleUserAlleesWrap();}
@@ -8179,18 +8191,8 @@ function csLoad(p){_csPeriod=p;var saved=_cons[p];CONS=saved?JSON.parse(JSON.str
   $("cs-rack").value=(CONS.rackCyrus!=null?CONS.rackCyrus:"");$("cs-mach").value=(CONS.machCyrus!=null?CONS.machCyrus:"");$("cs-prix").value=(CONS.prix!=null?CONS.prix:7500);
   $("cs-info").textContent=saved?("Enregistré le "+new Date(saved.at).toLocaleDateString("fr-FR")+(saved.by?(" par "+saved.by):"")):"Nouveau — non encore enregistré";
   csBuildRows();csRecalc();}
-function csNormZ(s){return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");}
-function csAllowedKeys(){
-  /* Chef de secteur : ne peut saisir que ses allées attribuées. Les autres
-     profils (périmètre complet) voient toutes les zones, comme avant. */
-  if(!ME||ME.role!=="chef_secteur"||!SCOPE||SCOPE.all)return null;
-  var allow={};(SCOPE.allees||[]).forEach(function(a){allow[csNormZ(a)]=1;});
-  return allow;
-}
 function csBuildRows(){
-  var allow=csAllowedKeys();
-  var keys=allow?CZ_ALL.filter(function(k){return allow[csNormZ(k)];}):CZ_ALL;
-  $("cs-body").innerHTML=keys.map(function(k){var z=CONS.zones[k]||{},rack=CZ_RACK.indexOf(k)>=0;
+  $("cs-body").innerHTML=CZ_ALL.map(function(k){var z=CONS.zones[k]||{},rack=CZ_RACK.indexOf(k)>=0;
   function inp(f){return '<input type="number" min="0" data-z="'+esc(k)+'" data-f="'+f+'" value="'+((z[f]!==""&&z[f]!=null)?esc(String(z[f])):"")+'">';}
   var dash='<span class="dis">—</span>';
   if(rack){
