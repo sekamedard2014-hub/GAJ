@@ -3419,7 +3419,12 @@ body.theme-dark .side .side-actions .btn:not(.btn-gold):not(.btn-danger):not(.bt
   #app{grid-template-rows:auto auto 1fr auto!important}
   .side{
     position:fixed!important;top:0;left:0;bottom:0;grid-row:auto!important;
-    width:min(86vw,320px)!important;height:100vh!important;max-height:100vh;
+    width:min(86vw,320px)!important;height:auto!important;max-height:none!important;
+    /* Pas d'unité vh ici : sur certains navigateurs Android/PDA, 100vh ne
+       tient pas compte de la barre d'adresse visible et rend le tiroir plus
+       grand que l'écran réel, ce qui repoussait le bouton Déconnexion hors
+       champ. top:0/left:0/bottom:0 sur un élément fixed s'aligne toujours
+       sur la zone visible réelle, sur tous les navigateurs. */
     transform:translateX(-101%);transition:transform .22s ease;
     z-index:400!important;box-shadow:0 0 0 rgba(0,0,0,0);overflow-y:auto;
     grid-template-columns:none!important;
