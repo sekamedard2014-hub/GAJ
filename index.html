@@ -1340,6 +1340,15 @@ label{color:rgba(238,239,249,.62)}
   outline:none;border-bottom-color:var(--accent);
   background:transparent;box-shadow:0 1px 0 0 var(--accent);
 }
+.lg-storage-warn{
+  display:flex;gap:8px;align-items:flex-start;font-size:11.3px;line-height:1.5;
+  color:#FFD9DC;background:rgba(217,45,60,.16);border:1px solid rgba(240,74,87,.4);
+  border-radius:10px;padding:10px 12px;margin-bottom:16px;
+}
+.lg-storage-warn.hidden{display:none}
+.lg-storage-warn b{color:#fff}
+body.theme-light .lg-storage-warn{color:#7A1420!important;background:rgba(217,45,60,.08)!important;border-color:rgba(217,45,60,.35)!important}
+body.theme-light .lg-storage-warn b{color:#5A0F18!important}
 .lg-op-frame{
   border:1.5px solid rgba(255,204,0,.4);border-radius:14px;
   padding:14px 16px 12px;margin-bottom:20px;
@@ -3497,16 +3506,17 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
     <!-- Volet droit : formulaire -->
     <div class="lg-panel">
       <div class="lg-form" id="lg-form">
+        <div class="lg-storage-warn hidden" id="lg-storage-warn"></div>
         <div class="lg-op-frame">
           <div class="lg-fld">
             <label for="lg-user">👤 OPÉRATEUR</label>
-            <input type="text" id="lg-user" placeholder="Identifiant" autocomplete="username">
+            <input type="text" id="lg-user" placeholder="Identifiant" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
           </div>
           <div class="lg-user-hint" id="lg-user-hint"></div>
         </div>
         <div class="lg-fld">
           <label for="lg-pass">MOT DE PASSE</label>
-          <input type="password" id="lg-pass" placeholder="••••••••" autocomplete="current-password">
+          <input type="password" id="lg-pass" placeholder="••••••••" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false">
         </div>
         <div class="lg-forgot">Mot de passe oublié ?</div>
         <button class="login-go" id="lg-go">Se connecter</button>
@@ -4966,7 +4976,8 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
     b = b || {};
     if (path === "login") {
       var u = userByMat(b.user);
-      if (!u || u.password !== hashPwd(b.pass)) { log("login_échec", String(b.user || "")); throw err("identifiants incorrects"); }
+      /* espace parasite en début/fin fréquent au clavier tactile (autocomplétion, frappe glissée) */
+      if (!u || u.password !== hashPwd(String(b.pass || "").trim())) { log("login_échec", String(b.user || "")); throw err("identifiants incorrects"); }
       cur = u; u.lastLogin = new Date().toISOString(); u.loginCount = (u.loginCount || 0) + 1;
       save(); log("connexion"); return ctx();
     }
@@ -5017,9 +5028,10 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
     }
 
     if (path === "password") {
-      if (cur.password !== hashPwd(b.old)) throw err("ancien mot de passe incorrect");
-      if (!b.new || b.new.length < 4) throw err("nouveau mot de passe trop court");
-      cur.password = hashPwd(b.new); delete cur.mustChangePassword; save(); log("changement_mdp"); return { ok: true };
+      var pOld = String(b.old || "").trim(), pNew = String(b.new || "").trim();
+      if (cur.password !== hashPwd(pOld)) throw err("ancien mot de passe incorrect");
+      if (!pNew || pNew.length < 4) throw err("nouveau mot de passe trop court");
+      cur.password = hashPwd(pNew); delete cur.mustChangePassword; save(); log("changement_mdp"); return { ok: true };
     }
     if (path === "users") {
       if (cur.role !== "admin") throw err("réservé administrateur");
@@ -5363,6 +5375,28 @@ if($("lg-user")){
   $("lg-user").addEventListener("input",function(){clearTimeout(_lgWhoisT);_lgWhoisT=setTimeout(lgUserLookup,150);});
   $("lg-user").addEventListener("blur",lgUserLookup);
 }
+/* Un fichier .html ouvert directement (file://) via un gestionnaire de
+   fichiers n'a pas toujours un stockage local fiable d'un appareil ou
+   d'une ouverture a l'autre selon le navigateur/l'application utilisee :
+   les comptes reels importes peuvent alors disparaitre silencieusement,
+   et seuls les comptes par defaut (ADMIN/USER) restent presents — ce qui
+   se traduit par « Identifiants incorrects » pour tout le monde d'autre.
+   On le detecte et on previent clairement plutot que de laisser croire
+   a une erreur de saisie. */
+function checkStorageHealth(){
+  var el=$("lg-storage-warn");if(!el)return;
+  var risky=false;
+  try{
+    if(location.protocol==="file:"&&window.GAJ&&typeof window.GAJ.exportDB==="function"){
+      var d=JSON.parse(window.GAJ.exportDB());
+      var nUsers=((d&&d.db&&d.db.users)||[]).length;
+      if(nUsers<=2)risky=true;
+    }
+  }catch(e){}
+  el.classList.toggle("hidden",!risky);
+  if(risky)el.innerHTML="⚠️ <b>Aucun compte réel n'est enregistré sur cet appareil.</b> Si la base du jour a déjà été chargée ici, ce navigateur ne conserve pas les données pour un fichier ouvert de cette façon. Ouvrez le fichier <b>une seule fois dans Chrome</b>, puis créez un favori ou un raccourci sur l'écran d'accueil vers cet onglet — et rouvrez toujours ce raccourci ensuite, plus jamais le fichier brut depuis le gestionnaire de fichiers.";
+}
+checkStorageHealth();
 function doLogin(){
   var u=$("lg-user").value, p=$("lg-pass").value;
   api("login","POST",{user:u,pass:p}).then(function(r){
@@ -5370,7 +5404,7 @@ function doLogin(){
     loadAnomalies();loadInvStatus();
     enterApp();
     if(ME.mustChangePassword)openPwdModal(true);
-  }).catch(function(e){var el=$("lg-err");el.textContent="Identifiants incorrects.";el.classList.add("show");});
+  }).catch(function(e){var el=$("lg-err");el.textContent="Identifiants incorrects.";el.classList.add("show");checkStorageHealth();});
 }
 function onLoggedOut(){ME=null;DATA=null;window.REF_READY=false;try{document.body.classList.remove("locked");}catch(e){}
   try{ if($("lg-gate"))$("lg-gate").classList.add("hidden");
