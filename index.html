@@ -6208,10 +6208,19 @@ if($("pills-travee"))$("pills-travee").addEventListener("click",function(e){var 
    clavier, validation des écarts/inventaires par signature à
    l'écran plutôt que par impression + case à cocher manuscrite.
    ============================================================ */
-var _scanStream=null,_scanRAF=null,_scanCB=null,_scanDetector=null;
+var _scanStream=null,_scanRAF=null,_scanCB=null,_scanDetector=null,_scanPhotoInput=null;
 function openScanner(hint,cb){
   _scanCB=cb;
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){toast("Caméra indisponible sur cet appareil — utilisez la saisie manuelle.");return;}
+  /* La caméra "live" (getUserMedia) exige un contexte sécurisé (https ou
+     localhost) : sur un fichier ouvert en file:// (notre cas, sans
+     serveur), les navigateurs mobiles la refusent d'office avec
+     "Permission denied", sans même proposer de dialogue d'autorisation.
+     On bascule alors — et à chaque échec de la caméra live, quelle qu'en
+     soit la raison — sur l'appareil photo natif du téléphone (une simple
+     capture de photo, autorisée partout y compris en file://), avec
+     tentative de lecture automatique du code sur la photo prise. */
+  var canLive=navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.isSecureContext;
+  if(!canLive){scanPhotoFallback(hint);return;}
   $("scan-hint").textContent=hint||"";
   openModal("scan-modal");
   var video=$("scan-video");
@@ -6220,7 +6229,41 @@ function openScanner(hint,cb){
     try{_scanDetector=("BarcodeDetector" in window)?new BarcodeDetector({formats:["qr_code","ean_13","ean_8","code_128","code_39","upc_a","upc_e"]}):null;}catch(e){_scanDetector=null;}
     if(!_scanDetector)$("scan-hint").textContent="Lecture automatique non supportée par ce navigateur — utilisez la saisie manuelle ci-dessous.";
     else scanTick();
-  }).catch(function(e){toast("Caméra refusée ou indisponible : "+(e&&e.message||""));closeModal("scan-modal");});
+  }).catch(function(e){closeModal("scan-modal");scanPhotoFallback(hint);});
+}
+function scanPhotoFallback(hint){
+  if(!_scanPhotoInput){
+    _scanPhotoInput=document.createElement("input");
+    _scanPhotoInput.type="file";_scanPhotoInput.accept="image/*";_scanPhotoInput.setAttribute("capture","environment");
+    _scanPhotoInput.style.display="none";
+    document.body.appendChild(_scanPhotoInput);
+    _scanPhotoInput.onchange=function(e){
+      var f=e.target.files&&e.target.files[0];_scanPhotoInput.value="";
+      if(f)scanDetectFromFile(f);
+    };
+  }
+  toast("📷 Prenez une photo nette du code-barres"+(hint?(" — "+hint):""));
+  _scanPhotoInput.click();
+}
+function scanDetectFromFile(file){
+  var cb=_scanCB,url=URL.createObjectURL(file),img=new Image();
+  img.onload=function(){
+    URL.revokeObjectURL(url);
+    if(!("BarcodeDetector" in window)){scanManualPrompt(cb,"Lecture automatique non supportée par ce navigateur.");return;}
+    try{
+      var det=new BarcodeDetector({formats:["qr_code","ean_13","ean_8","code_128","code_39","upc_a","upc_e"]});
+      det.detect(img).then(function(codes){
+        if(codes&&codes.length){toast("Code détecté : "+codes[0].rawValue);if(cb)cb(codes[0].rawValue);}
+        else scanManualPrompt(cb,"Code non détecté sur la photo.");
+      }).catch(function(){scanManualPrompt(cb,"Code non détecté sur la photo.");});
+    }catch(e){scanManualPrompt(cb,"Code non détecté sur la photo.");}
+  };
+  img.onerror=function(){URL.revokeObjectURL(url);scanManualPrompt(cb,"Photo illisible.");};
+  img.src=url;
+}
+function scanManualPrompt(cb,msg){
+  var v=prompt((msg?msg+" ":"")+"Saisir le code manuellement :");
+  if(v&&v.trim()&&cb)cb(v.trim());
 }
 function scanTick(){
   if(!_scanStream||!_scanDetector)return;
