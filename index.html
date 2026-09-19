@@ -1340,9 +1340,28 @@ label{color:rgba(238,239,249,.62)}
   outline:none;border-bottom-color:var(--accent);
   background:transparent;box-shadow:0 1px 0 0 var(--accent);
 }
-.lg-user-hint{font-size:11px;margin:-12px 0 14px;min-height:14px;transition:color .15s;color:rgba(238,239,249,.35)}
+.lg-op-frame{
+  border:1.5px solid rgba(255,204,0,.4);border-radius:14px;
+  padding:14px 16px 12px;margin-bottom:20px;
+  background:linear-gradient(180deg,rgba(255,204,0,.07),rgba(255,204,0,.01));
+  transition:border-color .18s,box-shadow .18s,background .18s;
+}
+.lg-op-frame:focus-within{
+  border-color:var(--accent);background:rgba(255,204,0,.1);
+  box-shadow:0 0 0 3px rgba(255,204,0,.16);
+}
+.lg-op-frame .lg-fld{margin-bottom:0}
+.lg-op-frame .lg-fld label{color:var(--accent);opacity:.92}
+.lg-op-frame .lg-fld input{border-bottom:1px solid rgba(255,204,0,.3)}
+.lg-op-frame .lg-fld input:focus{border-bottom-color:var(--accent);box-shadow:none}
+.lg-user-hint{font-size:11px;margin:7px 2px 0;min-height:14px;transition:color .15s;color:rgba(238,239,249,.35)}
 .lg-user-hint.ok{color:#5FD37A;font-weight:700}
 .lg-user-hint.bad{color:#FF8A93}
+body.theme-light .lg-op-frame{border-color:rgba(230,184,0,.55);background:linear-gradient(180deg,rgba(230,184,0,.08),rgba(230,184,0,.01))}
+body.theme-light .lg-op-frame:focus-within{border-color:#E6B800;background:rgba(230,184,0,.12);box-shadow:0 0 0 3px rgba(230,184,0,.14)}
+body.theme-light .lg-op-frame .lg-fld label{color:#8a6d00!important}
+body.theme-light .lg-op-frame .lg-fld input{border-bottom:1px solid rgba(230,184,0,.4)!important}
+body.theme-light .lg-op-frame .lg-fld input:focus{border-bottom-color:#E6B800!important;box-shadow:none!important}
 body.theme-light .lg-user-hint{color:var(--muted)!important}
 body.theme-light .lg-user-hint.ok{color:#1E8E4E!important}
 body.theme-light .lg-user-hint.bad{color:#B01F2C!important}
@@ -3478,11 +3497,13 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
     <!-- Volet droit : formulaire -->
     <div class="lg-panel">
       <div class="lg-form" id="lg-form">
-        <div class="lg-fld">
-          <label for="lg-user">OPÉRATEUR</label>
-          <input type="text" id="lg-user" placeholder="votre matricule" autocomplete="username">
+        <div class="lg-op-frame">
+          <div class="lg-fld">
+            <label for="lg-user">👤 OPÉRATEUR</label>
+            <input type="text" id="lg-user" placeholder="votre matricule" autocomplete="username">
+          </div>
+          <div class="lg-user-hint" id="lg-user-hint"></div>
         </div>
-        <div class="lg-user-hint" id="lg-user-hint"></div>
         <div class="lg-fld">
           <label for="lg-pass">MOT DE PASSE</label>
           <input type="password" id="lg-pass" placeholder="••••••••" autocomplete="current-password">
