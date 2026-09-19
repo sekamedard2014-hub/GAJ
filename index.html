@@ -3500,7 +3500,7 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
         <div class="lg-op-frame">
           <div class="lg-fld">
             <label for="lg-user">👤 OPÉRATEUR</label>
-            <input type="text" id="lg-user" placeholder="votre matricule" autocomplete="username">
+            <input type="text" id="lg-user" placeholder="Identifiant" autocomplete="username">
           </div>
           <div class="lg-user-hint" id="lg-user-hint"></div>
         </div>
@@ -5344,13 +5344,18 @@ function openPrintable(title,bodyHtml,css){
 }
 
 /* ---------- Auth ---------- */
-var _lgWhoisT=null;
+var _lgWhoisT=null,_lgHideT=null;
 function lgUserLookup(){
   var el=$("lg-user-hint");if(!el)return;
+  clearTimeout(_lgHideT);
   var v=($("lg-user").value||"").trim();
   if(!v){el.textContent="";el.className="lg-user-hint";return;}
   api("whois","POST",{user:v}).then(function(r){
-    if(r&&r.nom){el.textContent="✓ "+r.nom;el.className="lg-user-hint ok";}
+    if(r&&r.nom){
+      el.textContent="✓ "+r.nom;el.className="lg-user-hint ok";
+      /* confirmation à titre informatif seulement : elle s'efface d'elle-même */
+      _lgHideT=setTimeout(function(){el.textContent="";el.className="lg-user-hint";},2500);
+    }
     else{el.textContent="Matricule inconnu";el.className="lg-user-hint bad";}
   });
 }
@@ -5371,7 +5376,7 @@ function onLoggedOut(){ME=null;DATA=null;window.REF_READY=false;try{document.bod
   try{ if($("lg-gate"))$("lg-gate").classList.add("hidden");
        if($("lg-form"))$("lg-form").classList.remove("hidden");
        var _st=$("lg-step");if(_st)_st.textContent="\u00c9tape 1 sur 2";
-       if($("lg-err"))$("lg-err").classList.remove("show"); }catch(e){}$("app").classList.add("hidden");$("login").style.display="flex";$("lg-pass").value="";$("lg-user").value="";if($("lg-user-hint")){$("lg-user-hint").textContent="";$("lg-user-hint").className="lg-user-hint";}if(window._clockT){clearInterval(window._clockT);window._clockT=null;}}
+       if($("lg-err"))$("lg-err").classList.remove("show"); }catch(e){}$("app").classList.add("hidden");$("login").style.display="flex";$("lg-pass").value="";$("lg-user").value="";clearTimeout(_lgHideT);if($("lg-user-hint")){$("lg-user-hint").textContent="";$("lg-user-hint").className="lg-user-hint";}if(window._clockT){clearInterval(window._clockT);window._clockT=null;}}
 function logout(){api("logout","POST").finally(onLoggedOut);}
 
 function direAuRevoir(){
