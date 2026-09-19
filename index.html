@@ -5375,26 +5375,29 @@ if($("lg-user")){
   $("lg-user").addEventListener("input",function(){clearTimeout(_lgWhoisT);_lgWhoisT=setTimeout(lgUserLookup,150);});
   $("lg-user").addEventListener("blur",lgUserLookup);
 }
-/* Un fichier .html ouvert directement (file://) via un gestionnaire de
-   fichiers n'a pas toujours un stockage local fiable d'un appareil ou
-   d'une ouverture a l'autre selon le navigateur/l'application utilisee :
-   les comptes reels importes peuvent alors disparaitre silencieusement,
-   et seuls les comptes par defaut (ADMIN/USER) restent presents — ce qui
-   se traduit par « Identifiants incorrects » pour tout le monde d'autre.
-   On le detecte et on previent clairement plutot que de laisser croire
-   a une erreur de saisie. */
+/* Chaque appareil (PDA/telephone/PC) a son propre stockage local : la
+   base du jour (comptes, catalogue...) ne s'y trouve QUE si elle y a ete
+   chargee explicitement — ce n'est jamais automatique, il n'y a pas de
+   serveur central. Tant que ce n'est pas fait, seuls les 2 comptes par
+   defaut (ADMIN/USER) existent sur l'appareil et toute connexion avec un
+   vrai matricule echoue avec « Identifiants incorrects », ce qui peut
+   ressembler a une erreur de saisie alors que ce n'en est pas une. Un
+   fichier ouvert directement (file://, ou via un visualiseur d'appli
+   tierce) peut en plus ne pas conserver ce chargement d'une ouverture a
+   l'autre selon le navigateur. On detecte l'un ou l'autre cas et on
+   previent clairement. */
 function checkStorageHealth(){
   var el=$("lg-storage-warn");if(!el)return;
   var risky=false;
   try{
-    if(location.protocol==="file:"&&window.GAJ&&typeof window.GAJ.exportDB==="function"){
+    if(window.GAJ&&typeof window.GAJ.exportDB==="function"){
       var d=JSON.parse(window.GAJ.exportDB());
       var nUsers=((d&&d.db&&d.db.users)||[]).length;
       if(nUsers<=2)risky=true;
     }
   }catch(e){}
   el.classList.toggle("hidden",!risky);
-  if(risky)el.innerHTML="⚠️ <b>Aucun compte réel n'est enregistré sur cet appareil.</b> Si la base du jour a déjà été chargée ici, ce navigateur ne conserve pas les données pour un fichier ouvert de cette façon. Ouvrez le fichier <b>une seule fois dans Chrome</b>, puis créez un favori ou un raccourci sur l'écran d'accueil vers cet onglet — et rouvrez toujours ce raccourci ensuite, plus jamais le fichier brut depuis le gestionnaire de fichiers.";
+  if(risky)el.innerHTML="⚠️ <b>Aucun compte réel sur cet appareil</b> — seuls les comptes par défaut (ADMIN/USER) existent ici. La base du jour ne se charge jamais toute seule : elle doit être importée séparément sur <b>chaque</b> téléphone/PDA. Connectez-vous en <b>ADMIN</b>, puis à l'étape suivante chargez le fichier <b>.json</b> transmis par l'administrateur. Si vous l'avez déjà fait et que ce message revient après avoir fermé puis rouvert l'application, c'est que ce navigateur ne conserve pas les données pour ce fichier : ouvrez-le une seule fois dans <b>Chrome</b>, ajoutez un favori ou un raccourci écran d'accueil vers cet onglet, et rouvrez toujours ce raccourci ensuite — jamais le fichier brut depuis le gestionnaire de fichiers.";
 }
 checkStorageHealth();
 function doLogin(){
