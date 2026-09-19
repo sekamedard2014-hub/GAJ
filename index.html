@@ -1340,6 +1340,12 @@ label{color:rgba(238,239,249,.62)}
   outline:none;border-bottom-color:var(--accent);
   background:transparent;box-shadow:0 1px 0 0 var(--accent);
 }
+.lg-user-hint{font-size:11px;margin:-12px 0 14px;min-height:14px;transition:color .15s;color:rgba(238,239,249,.35)}
+.lg-user-hint.ok{color:#5FD37A;font-weight:700}
+.lg-user-hint.bad{color:#FF8A93}
+body.theme-light .lg-user-hint{color:var(--muted)!important}
+body.theme-light .lg-user-hint.ok{color:#1E8E4E!important}
+body.theme-light .lg-user-hint.bad{color:#B01F2C!important}
 .lg-forgot{text-align:right;font-size:11.5px;color:rgba(238,239,249,.4);margin:-6px 0 22px;cursor:default}
 .login-go{
   width:100%;border:0;border-radius:999px;
@@ -3468,9 +3474,10 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
     <div class="lg-panel">
       <div class="lg-form" id="lg-form">
         <div class="lg-fld">
-          <label for="lg-user">IDENTIFIANT</label>
-          <input type="text" id="lg-user" placeholder="vos initiales" autocomplete="username">
+          <label for="lg-user">OPÉRATEUR</label>
+          <input type="text" id="lg-user" placeholder="votre matricule" autocomplete="username">
         </div>
+        <div class="lg-user-hint" id="lg-user-hint"></div>
         <div class="lg-fld">
           <label for="lg-pass">MOT DE PASSE</label>
           <input type="password" id="lg-pass" placeholder="••••••••" autocomplete="current-password">
@@ -3506,7 +3513,6 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
         <div id="gate-admin-mode" class="hidden" style="display:flex;gap:6px;justify-content:center;margin:2px 0 10px;flex-wrap:wrap">
           <button class="btn btn-sm gate-mode-btn" id="gate-mode-files" type="button">📦 Fichiers sources</button>
           <button class="btn btn-sm gate-mode-btn" id="gate-mode-json" type="button">🗃️ Fichier .json</button>
-          <button class="btn btn-sm" id="gate-demo" type="button" title="Charge un jeu d'articles fictifs pour tester l'application sans fichiers réels">🧪 Tester avec des données de démonstration</button>
         </div>
 
         <!-- Administrateur : extractions sources -->
@@ -4273,7 +4279,6 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
         <input type="file" id="file-cat" accept=".csv,.xlsx,.xls" class="hidden">
         <input type="file" id="file-pick" accept=".txt,.csv,.xlsx,.xls" class="hidden">
         <input type="file" id="file-sup" accept=".txt,.csv,.xlsx,.xls" class="hidden">
-        <div class="row" style="margin-top:12px"><button class="btn btn-sm" id="btn-demo">Charger données de démo</button></div>
       </div>
       <div class="card"><h3>Base de données (fichier central)</h3><span class="infob" tabindex="0" aria-label="Procédure de consolidation (admin)"><span aria-hidden="true">i</span><span class="infob-tip"><span class="it-h">🗂️ Consolidation (admin)</span><span class="it-step">📂 Restaurer la base consolidée</span> = restaurer la dernière <b>03_Base consolidée</b> (écrase tout, à faire une seule fois au départ). <span class="it-step">🔗 Fusionner plusieurs</span> = intégrer tous les fichiers de <b>02_Sauvegardes utilisateurs</b> sans rien écraser. Puis <span class="it-step">💾 Sauvegarder</span> et ranger le résultat dans <b>03_Base consolidée</b>.</span></span>
         <div class="row" style="margin-top:10px">
@@ -4940,6 +4945,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       save(); log("connexion"); return ctx();
     }
     if (path === "logout") { cur = null; return { ok: true }; }
+    if (path === "whois") { var wu = userByMat(b.user); return { nom: wu ? wu.nom : null }; }
     if (path === "me") { if (!cur) throw err("non_authentifié"); return ctx(); }
     if (!cur) throw err("non_authentifié");
 
@@ -5097,7 +5103,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       save(!keepRef);
       return { ok: true };
     }
-    if (path === "blind" && method === "POST") { DB.settings.blind = !!b.blind; save(); return { ok: true, blind: DB.settings.blind }; }
+    if (path === "blind" && method === "POST") { if (cur.role === "chef_secteur") throw err("réservé responsable/admin"); DB.settings.blind = !!b.blind; save(); return { ok: true, blind: DB.settings.blind }; }
     if (path === "activities") {
       if (method === "GET") {
         var sc2 = scopeOf(cur), list = DB.activities;
@@ -5312,6 +5318,20 @@ function openPrintable(title,bodyHtml,css){
 }
 
 /* ---------- Auth ---------- */
+var _lgWhoisT=null;
+function lgUserLookup(){
+  var el=$("lg-user-hint");if(!el)return;
+  var v=($("lg-user").value||"").trim();
+  if(!v){el.textContent="";el.className="lg-user-hint";return;}
+  api("whois","POST",{user:v}).then(function(r){
+    if(r&&r.nom){el.textContent="✓ "+r.nom;el.className="lg-user-hint ok";}
+    else{el.textContent="Matricule inconnu";el.className="lg-user-hint bad";}
+  });
+}
+if($("lg-user")){
+  $("lg-user").addEventListener("input",function(){clearTimeout(_lgWhoisT);_lgWhoisT=setTimeout(lgUserLookup,150);});
+  $("lg-user").addEventListener("blur",lgUserLookup);
+}
 function doLogin(){
   var u=$("lg-user").value, p=$("lg-pass").value;
   api("login","POST",{user:u,pass:p}).then(function(r){
@@ -5325,7 +5345,7 @@ function onLoggedOut(){ME=null;DATA=null;window.REF_READY=false;try{document.bod
   try{ if($("lg-gate"))$("lg-gate").classList.add("hidden");
        if($("lg-form"))$("lg-form").classList.remove("hidden");
        var _st=$("lg-step");if(_st)_st.textContent="\u00c9tape 1 sur 2";
-       if($("lg-err"))$("lg-err").classList.remove("show"); }catch(e){}$("app").classList.add("hidden");$("login").style.display="flex";$("lg-pass").value="";if(window._clockT){clearInterval(window._clockT);window._clockT=null;}}
+       if($("lg-err"))$("lg-err").classList.remove("show"); }catch(e){}$("app").classList.add("hidden");$("login").style.display="flex";$("lg-pass").value="";$("lg-user").value="";if($("lg-user-hint")){$("lg-user-hint").textContent="";$("lg-user-hint").className="lg-user-hint";}if(window._clockT){clearInterval(window._clockT);window._clockT=null;}}
 function logout(){api("logout","POST").finally(onLoggedOut);}
 
 function direAuRevoir(){
@@ -5387,6 +5407,7 @@ function enterApp(){
      vers l'administrateur restent visibles. */
   var isTerrain=(ME.role==="chef_secteur");
   if($("btn-reset"))$("btn-reset").style.display=isTerrain?"none":"";
+  if($("btn-blind"))$("btn-blind").style.display=isTerrain?"none":"";
   if($("terrain-hide-compte"))$("terrain-hide-compte").style.display=isTerrain?"none":"contents";
   if($("terrain-hide-consigne"))$("terrain-hide-consigne").style.display=isTerrain?"none":"contents";
   if($("terrain-hide-kpis"))$("terrain-hide-kpis").style.display=isTerrain?"none":"contents";
@@ -5415,6 +5436,36 @@ function lockApp(){
   if($("lg-gate"))$("lg-gate").classList.remove("hidden");
   var st=$("lg-step");if(st)st.textContent="\u00c9tape 2 sur 2";
   var admin=(ME&&ME.role==="admin");
+  if(ME&&ME.role==="chef_secteur"){
+    /* Chef de secteur : rien a charger. On tente une ouverture directe si
+       la base du jour est deja presente sur cet appareil (chargee au
+       prealable par un responsable de zone ou l'administrateur) ; sinon
+       on l'invite a patienter, sans jamais lui proposer d'importer quoi
+       que ce soit lui-meme. */
+    if($("gate-admin-mode"))$("gate-admin-mode").classList.add("hidden");
+    if($("gate-admin"))$("gate-admin").classList.add("hidden");
+    if($("gate-user"))$("gate-user").classList.add("hidden");
+    if($("gate-load"))$("gate-load").classList.add("hidden");
+    if($("gate-local"))$("gate-local").classList.add("hidden");
+    if($("gate-reset"))$("gate-reset").style.display="none";
+    if($("gate-rest"))$("gate-rest").textContent="";
+    var go=$("gate-open");
+    if(go){go.classList.add("hidden");go.disabled=true;}
+    $("gate-title").textContent="Ouverture de votre espace de comptage\u2026";
+    $("gate-msg").innerHTML="Merci de patienter, v\u00e9rification des donn\u00e9es sur cet appareil.";
+    $("gate-note").textContent="Compte "+((ME&&ME.nom)||"")+" \u00b7 chef de secteur";
+    var bk0=$("lg-back");if(bk0)bk0.onclick=function(){onLoggedOut();};
+    var terrainRetry=function(){
+      $("gate-title").textContent="Base du jour indisponible";
+      $("gate-msg").innerHTML="Aucune donn\u00e9e n'a encore \u00e9t\u00e9 charg\u00e9e sur cet appareil aujourd'hui. Demandez \u00e0 votre responsable de zone ou \u00e0 l'administrateur de charger la base du jour sur ce poste, puis r\u00e9essayez.";
+      if(go){go.classList.remove("hidden");go.disabled=false;go.textContent="\ud83d\udd04 R\u00e9essayer";go.onclick=function(){lockApp();};}
+    };
+    api("data").then(function(d){
+      var nc=(d.catalogue||[]).length;
+      if(nc>0)unlockApp();else terrainRetry();
+    }).catch(terrainRetry);
+    return;
+  }
   var per=(SCOPE&&SCOPE.all)?"entr\u00e9pot complet":((SCOPE&&SCOPE.sectors&&SCOPE.sectors.length)?SCOPE.sectors.length+" secteur(s)":"non d\u00e9fini");
   per=per.replace("entr\u00e9pot","entrep\u00f4t");
   $("gate-title").textContent="Chargement des r\u00e9f\u00e9rentiels";
@@ -8096,25 +8147,6 @@ function importSup(file){gateMark("sup");
     api("reference","POST",{kind:"supports",name:file.name,data:out,mapping:m2}).then(loadData).then(function(){toast(out.length+" supports importés.");renderRefMeta();});});}
 function bindDrop(dropId,fileId,handler){var d=$(dropId),f=$(fileId);d.onclick=function(){f.click();};f.onchange=function(e){if(e.target.files[0])handler(e.target.files[0]);e.target.value="";};}
 function renderRefMeta(){if(!REF_READY)gateSync();if(!DATA)return;$("m-cat").textContent=DATA.meta.cat?DATA.meta.cat.count+" art. · "+DATA.meta.cat.when:"aucun";$("m-pick").textContent=DATA.meta.pick?DATA.meta.pick.count+" lignes · "+(DATA.meta.pick.at?fmtDT(DATA.meta.pick.at):DATA.meta.pick.when):"aucun";$("m-sup").textContent=DATA.meta.sup?DATA.meta.sup.count+" supports":"aucun";}
-function loadDemoData(){
-  var cat=[],pk={},sup=[],names=["Riz 5kg","Huile 1L","Sucre 1kg","Lait UHT","Café 250g","Croquettes 3kg","Gel douche","Lessive 3L"],seed=7;
-  function rnd(){seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;}
-  Object.keys(ZONES).forEach(function(z){ZONES[z].allees.forEach(function(al){for(var i=1;i<=3;i++){var code="DEMO-"+al+"-"+i,pick=2+Math.floor(rnd()*8);pk[code]=pick;var ns=Math.floor(rnd()*3),ss=0;for(var s=1;s<=ns;s++){var q=30+Math.floor(rnd()*100);ss+=q;sup.push({code:code,support:"PAL-"+al+"-"+i+"-"+s,emp:al+"-"+(2+Math.floor(rnd()*20))+"-"+s,qtyTheo:q});}cat.push({code:code,designation:names[Math.floor(rnd()*names.length)],zone:z,allee:al,prix:300+Math.floor(rnd()*50)*50,stockTheorique:pick+ss,classe:rnd()<.3?"A":(rnd()<.6?"B":"C"),pcb:6+Math.floor(rnd()*6)});}});});
-  return api("reference","POST",{kind:"catalogue",name:"démo",data:cat}).then(function(){return api("reference","POST",{kind:"picking",name:"démo",data:pk});}).then(function(){return api("reference","POST",{kind:"supports",name:"démo",data:sup});}).then(function(){
-    /* La démo doit permettre de tester sans fichiers réels : on marque
-       nous-mêmes les sources comme acquises pour déverrouiller l'accès,
-       exactement comme le ferait un vrai import de fichier. */
-    gateMark("cat");gateMark("pick");gateMark("sup");gateMark("ref");
-    return loadData();
-  }).then(function(){
-    toast("Démo chargée ("+cat.length+" articles).");
-    if(typeof renderRefMeta==="function")renderRefMeta();
-    if(!REF_READY){unlockApp();}else{gateSync();}
-  });
-}
-$("btn-demo").onclick=loadDemoData;
-if($("gate-demo"))$("gate-demo").onclick=loadDemoData;
-
 /* ===================================================================
    UTILISATEURS (conservé de V1)
    =================================================================== */
