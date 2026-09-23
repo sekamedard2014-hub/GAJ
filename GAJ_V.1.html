@@ -8132,7 +8132,7 @@ $("rp-mail").onclick=function(){if(!lastReport){toast("Générez d'abord un rapp
    IMPORT RÉFÉRENTIEL (conservé de V1)
    =================================================================== */
 function matchHeader(h){var n=norm(h);
-  if(/code[\s-]*a?[\s-]*barres?|codebarres?|gencod|\bean(13|8)?\b|\bgtin\b|\bitf14\b|barcode|scancode|\bcdbr\w*/.test(n))return"cb";
+  if(/code[\s-]*a?[\s-]*barres?|codebarres?|gencod|\bean(13|8)?\b|\bcean\b|\bgtin\b|\bitf14\b|barcode|scancode|\bcdbr\w*/.test(n))return"cb";
   if(n==="pcb"||n.indexOf("pcb")>=0||n.indexOf("colisage")>=0)return"pcb";
   if(n==="prix"||n==="pu"||n==="pmp"||n.indexOf("prix")>=0)return"prix";
   if(n.indexOf("support")>=0||n.indexOf("palette")>=0)return"support";
@@ -8157,7 +8157,7 @@ function importCat(file){gateMark("cat");readFile(file,function(rows){
     var iCmkp=colIdx("CMKP","CMKP MAXIMUM","CODE MARKETING");
     /* Quantité en commande — nécessaire pour « NC / ES à désadresser » */
     var iQcde=colIdx("QCDCKA MOYENNE","QCDCKA","QCOCKA MOYENNE","QCOCKA","QTE EN COMMANDE","QUANTITE EN COMMANDE");
-    var iCb=colIdx("CODE BARRE","CODE A BARRE","CODE-BARRE","CODE-BARRES","CODEBARRE","CODEBARRES","GENCOD","GENCODE","GENCOD EAN13","EAN","EAN13","EAN8","CODE EAN","EAN CODE","GTIN","ITF14","BARCODE","SCANCODE","CDBR","CDBRA","COD BARRE","CODE BARRE ARTICLE","CDBRA MAXIMUM","EAN MAXIMUM","GENCOD MAXIMUM","CDBR MAXIMUM");
+    var iCb=colIdx("CEAN","CEAN MAXIMUM","CODE BARRE","CODE A BARRE","CODE-BARRE","CODE-BARRES","CODEBARRE","CODEBARRES","GENCOD","GENCODE","GENCOD EAN13","EAN","EAN13","EAN8","CODE EAN","EAN CODE","GTIN","ITF14","BARCODE","SCANCODE","CDBR","CDBRA","COD BARRE","CODE BARRE ARTICLE","CDBRA MAXIMUM","EAN MAXIMUM","GENCOD MAXIMUM","CDBR MAXIMUM");
     var pad=function(v,n){return String(v==null?"":v).trim().padStart(n,"0");};
     var out=[],seen={},nCsta=0,nFour=0,nCmkp=0,nCb=0;
     for(var r2=1;r2<rows.length;r2++){var row=rows[r2];if(!row||!row.length)continue;
