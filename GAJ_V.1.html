@@ -8158,6 +8158,9 @@ function importCat(file){gateMark("cat");readFile(file,function(rows){
     /* Quantité en commande — nécessaire pour « NC / ES à désadresser » */
     var iQcde=colIdx("QCDCKA MOYENNE","QCDCKA","QCOCKA MOYENNE","QCOCKA","QTE EN COMMANDE","QUANTITE EN COMMANDE");
     var iCb=colIdx("CEAN","CEAN MAXIMUM","CODE BARRE","CODE A BARRE","CODE-BARRE","CODE-BARRES","CODEBARRE","CODEBARRES","GENCOD","GENCODE","GENCOD EAN13","EAN","EAN13","EAN8","CODE EAN","EAN CODE","GTIN","ITF14","BARCODE","SCANCODE","CDBR","CDBRA","COD BARRE","CODE BARRE ARTICLE","CDBRA MAXIMUM","EAN MAXIMUM","GENCOD MAXIMUM","CDBR MAXIMUM");
+    /* Repli : dans le fichier catalogue de l'entrepôt, le code barre se trouve en colonne W
+       (index 22) même quand son intitulé d'en-tête n'est pas reconnu par les libellés ci-dessus. */
+    if(iCb==null&&head.length>22)iCb=22;
     var pad=function(v,n){return String(v==null?"":v).trim().padStart(n,"0");};
     var out=[],seen={},nCsta=0,nFour=0,nCmkp=0,nCb=0;
     for(var r2=1;r2<rows.length;r2++){var row=rows[r2];if(!row||!row.length)continue;
