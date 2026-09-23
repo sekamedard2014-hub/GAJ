@@ -8131,6 +8131,24 @@ $("rp-mail").onclick=function(){if(!lastReport){toast("Générez d'abord un rapp
 /* ===================================================================
    IMPORT RÉFÉRENTIEL (conservé de V1)
    =================================================================== */
+/* Excel convertit parfois un code barre (nombre trop long pour son format numérique)
+   en notation scientifique irrémédiablement tronquée (ex. "3,19384E+11" au lieu du
+   vrai code à 13 chiffres) : impossible à reconstituer, donc on l'écarte plutôt que
+   d'afficher/utiliser une valeur fausse pour le scan. */
+function looksScientificNum(v){return /^-?\d+(?:[.,]\d+)?e[+-]?\d+$/i.test(String(v||"").trim());}
+function cleanBarcode(v){var s=String(v==null?"":v).trim();return looksScientificNum(s)?"":s;}
+/* Lecture d'un .csv en texte brut (cellules toujours en chaîne, jamais retypées en
+   nombre) : nécessaire pour ne pas perdre/déformer un code barre trop long. */
+function detectCsvDelim(line){var cands=[";",",","\t"],best=";",bestN=-1;cands.forEach(function(d){var n=line.split(d).length-1;if(n>bestN){bestN=n;best=d;}});return best;}
+function parseCsvLine(line,delim){var out=[],cur="",inQ=false;
+  for(var i=0;i<line.length;i++){var ch=line[i];
+    if(inQ){if(ch==='"'){if(line[i+1]==='"'){cur+='"';i++;}else inQ=false;}else cur+=ch;}
+    else{if(ch==='"')inQ=true;else if(ch===delim){out.push(cur);cur="";}else cur+=ch;}}
+  out.push(cur);return out;}
+function parseCsvText(text){var lines=String(text||"").split(/\r?\n/).filter(function(l){return l.length>0;});
+  if(!lines.length)return[];
+  var delim=detectCsvDelim(lines[0]);
+  return lines.map(function(l){return parseCsvLine(l,delim);});}
 function matchHeader(h){var n=norm(h);
   if(/code[\s-]*a?[\s-]*barres?|codebarres?|gencod|\bean(13|8)?\b|\bcean\b|\bgtin\b|\bitf14\b|barcode|scancode|\bcdbr\w*/.test(n))return"cb";
   if(n==="pcb"||n.indexOf("pcb")>=0||n.indexOf("colisage")>=0)return"pcb";
@@ -8146,7 +8164,8 @@ function matchHeader(h){var n=norm(h);
 function detectMap(rows,fb){for(var i=0;i<Math.min(rows.length,8);i++){var m={},h2=0,c=false;rows[i].forEach(function(cell,j){var f=matchHeader(cell);if(f&&m[f]===undefined){m[f]=j;h2++;if(f==="code")c=true;}});if(c&&h2>=2)return{map:m,start:i+1};}return{map:fb,start:0};}
 function readFile(file,cb){var rd=new FileReader();rd.onload=function(e){try{var wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"});cb(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:"",blankrows:false}));}catch(err){toast("Lecture impossible.");}};rd.readAsArrayBuffer(file);}
 function aisleOf(loc){var m=String(loc||"").match(/([A-Za-z])\s*0*(\d{1,2})/);if(!m)return"";return m[1].toUpperCase()+String(parseInt(m[2],10)).padStart(2,"0");}
-function importCat(file){gateMark("cat");readFile(file,function(rows){
+function importCat(file){gateMark("cat");
+  function proceedCat(rows){
   var head=(rows[0]||[]).map(function(h){return String(h).trim();});var H={};head.forEach(function(h,j){H[h]=j;});
   /* Recherche tolérante d'une colonne : insensible casse + espaces multiples ; accepte plusieurs libellés possibles */
   var Hn={};head.forEach(function(h,j){var k=String(h).toUpperCase().replace(/\s+/g," ").trim();if(Hn[k]==null)Hn[k]=j;});
@@ -8162,7 +8181,7 @@ function importCat(file){gateMark("cat");readFile(file,function(rows){
        (index 22) même quand son intitulé d'en-tête n'est pas reconnu par les libellés ci-dessus. */
     if(iCb==null&&head.length>22)iCb=22;
     var pad=function(v,n){return String(v==null?"":v).trim().padStart(n,"0");};
-    var out=[],seen={},nCsta=0,nFour=0,nCmkp=0,nCb=0;
+    var out=[],seen={},nCsta=0,nFour=0,nCmkp=0,nCb=0,nCbBad=0;
     for(var r2=1;r2<rows.length;r2++){var row=rows[r2];if(!row||!row.length)continue;
       var zon=String(row[H["ZONPXA MAXIMUM"]]||"").trim(),nart=String(row[H["NART"]]||"").trim();if(!nart)continue;
       var g1=zon+pad(row[H["ALLPXA MAXIMUM"]],2),g2=String(row[H["TRVPXA MAXIMUM"]]||"").trim()+pad(row[H["BAIPXA MAXIMUM"]],2),g3=pad(row[H["NIVPXA MAXIMUM"]],2)+String(row[H["POSPXA MAXIMUM"]]||"").trim();
@@ -8172,24 +8191,36 @@ function importCat(file){gateMark("cat");readFile(file,function(rows){
       var four=iFour!=null?String(row[iFour]!=null?row[iFour]:"").trim():"";
       var cmkp=iCmkp!=null?String(row[iCmkp]!=null?row[iCmkp]:"").trim():"";
       var qcde=iQcde!=null?(Math.round(num(row[iQcde])||0)):null;
-      var codebarre=iCb!=null?String(row[iCb]!=null?row[iCb]:"").trim():"";
-      if(csta)nCsta++;if(four)nFour++;if(cmkp)nCmkp++;if(codebarre)nCb++;
+      var codebarreRaw=iCb!=null?String(row[iCb]!=null?row[iCb]:"").trim():"";
+      var codebarre=cleanBarcode(codebarreRaw);
+      if(csta)nCsta++;if(four)nFour++;if(cmkp)nCmkp++;
+      if(codebarre)nCb++;else if(codebarreRaw)nCbBad++;
       out.push({code:emp,art:nart,designation:String(row[H["LART"]]||"").trim(),zone:zon,allee:g1,adresse:g1+" "+g2+" "+g3,prix:Math.round(num(row[H["DPCHKA MOYENNE"]])||0),stockMachine:Math.round(num(row[H["QPHCKA MOYENNE"]])||0),classe:"",pcb:parseInt(row[H["NBPC"]],10)||"",addressed:addressed,csta:csta,cmkp:cmkp,qcde:qcde,fournisseur:four,codebarre:codebarre});}
     if(!out.length){toast("Catalogue : aucune ligne.");return;}
     var msgCol=(iCsta==null?"⚠️ colonne CSTA introuvable. ":"CSTA : "+nCsta+" article(s). ")
       +(iCmkp==null?"⚠️ colonne CMKP introuvable. ":"CMKP : "+nCmkp+" article(s). ")
       +(iQcde==null?"⚠️ colonne « qté en commande » introuvable. ":"")
       +(iFour==null?"⚠️ colonne RSOCFO MAXIMUM introuvable. ":"Fournisseurs : "+nFour+" article(s). ")
-      +(iCb==null?"⚠️ colonne code barre introuvable (intitulé non reconnu — indiquez le nom exact de la colonne dans votre fichier).":"Code barre : "+nCb+" article(s).");
+      +(iCb==null?"⚠️ colonne code barre introuvable (intitulé non reconnu — indiquez le nom exact de la colonne dans votre fichier).":"Code barre : "+nCb+" article(s)."
+        +(nCbBad>0?" ⚠️ "+nCbBad+" code(s) barre illisible(s) car convertis en notation scientifique par Excel (ex. « 3,19384E+11 ») — le fichier source doit exporter cette colonne au format Texte, pas Nombre, sinon ces codes sont irrécupérables.":""));
     return api("reference","POST",{kind:"catalogue",name:file.name,data:out,mapping:{format:"catalogue_articles"}}).then(loadData).then(function(){toast(out.length+" articles importés. "+msgCol);renderRefMeta();});}
   var d=detectMap(rows,{code:0,desc:1,zone:2,loc:3,prix:4,qty:5,cls:6,pcb:7}),m2=d.map,out2=[];
   for(var r3=d.start;r3<rows.length;r3++){var row2=rows[r3];if(!row2||!row2.length)continue;var code=m2.code!=null?String(row2[m2.code]||"").trim():"";if(!code)continue;
     var loc=m2.loc!=null?up(row2[m2.loc]):"",al=aisleOf(loc)||aisleOf(code),z=m2.zone!=null?up(row2[m2.zone]):"";if(!ZONES[z])z=(al.charAt(0)||"");
-    out2.push({code:code,designation:m2.desc!=null?String(row2[m2.desc]||"").trim():"",zone:z,allee:al||loc,adresse:loc,prix:m2.prix!=null?(num(row2[m2.prix])||0):0,stockTheorique:m2.qty!=null?(num(row2[m2.qty])||0):0,classe:m2.cls!=null?(up(row2[m2.cls])||""):"",pcb:m2.pcb!=null?(num(row2[m2.pcb])||""):"",codebarre:m2.cb!=null?String(row2[m2.cb]||"").trim():""});}
+    out2.push({code:code,designation:m2.desc!=null?String(row2[m2.desc]||"").trim():"",zone:z,allee:al||loc,adresse:loc,prix:m2.prix!=null?(num(row2[m2.prix])||0):0,stockTheorique:m2.qty!=null?(num(row2[m2.qty])||0):0,classe:m2.cls!=null?(up(row2[m2.cls])||""):"",pcb:m2.pcb!=null?(num(row2[m2.pcb])||""):"",codebarre:m2.cb!=null?cleanBarcode(row2[m2.cb]):""});}
   if(!out2.length){toast("Aucune ligne exploitable.");return;}
   var nCb2=out2.filter(function(o){return o.codebarre;}).length;
-  var msgCb2=m2.cb==null?" ⚠️ colonne code barre introuvable (intitulé non reconnu — indiquez le nom exact de la colonne dans votre fichier).":" Code barre : "+nCb2+" article(s).";
-  api("reference","POST",{kind:"catalogue",name:file.name,data:out2,mapping:m2}).then(loadData).then(function(){toast(out2.length+" articles importés."+msgCb2);renderRefMeta();});});}
+  var nCb2Bad=m2.cb!=null?rows.slice(d.start).filter(function(row2){return row2&&row2.length&&String(row2[m2.cb]||"").trim()&&!cleanBarcode(row2[m2.cb]);}).length:0;
+  var msgCb2=m2.cb==null?" ⚠️ colonne code barre introuvable (intitulé non reconnu — indiquez le nom exact de la colonne dans votre fichier)."
+    :" Code barre : "+nCb2+" article(s)."+(nCb2Bad>0?" ⚠️ "+nCb2Bad+" code(s) barre illisible(s) car convertis en notation scientifique par Excel (ex. « 3,19384E+11 ») — exportez cette colonne au format Texte, pas Nombre.":"");
+  api("reference","POST",{kind:"catalogue",name:file.name,data:out2,mapping:m2}).then(loadData).then(function(){toast(out2.length+" articles importés."+msgCb2);renderRefMeta();});}
+  /* Un .csv est relu comme texte brut (délimiteur ; ou , détecté) plutôt que via XLSX :
+     XLSX/SheetJS retype les cellules qui ressemblent à un nombre, ce qui déforme
+     silencieusement un code barre trop long ("3,19384E+11" devient un tout autre
+     nombre) — un .xlsx/.xls binaire garde lui son typage de cellule d'origine. */
+  if(/\.csv$/i.test(file.name))readText(file,function(text){proceedCat(parseCsvText(text));});
+  else readFile(file,proceedCat);
+}
 function readText(file,cb){var rd=new FileReader();rd.onload=function(e){cb(String(e.target.result||""));};rd.onerror=function(){toast("Lecture impossible.");};rd.readAsText(file,"ISO-8859-1");}
 var EMP_RE=/^[A-Z]\d{2}[A-Z]\d{2}\d{3}$/;
 function impRows(text){return text.split(/\r?\n/).filter(function(l){return l.indexOf("!")>=0;}).map(function(l){return l.split("!");});}
