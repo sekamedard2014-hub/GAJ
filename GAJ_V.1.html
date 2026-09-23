@@ -8132,7 +8132,7 @@ $("rp-mail").onclick=function(){if(!lastReport){toast("Générez d'abord un rapp
    IMPORT RÉFÉRENTIEL (conservé de V1)
    =================================================================== */
 function matchHeader(h){var n=norm(h);
-  if(/code[\s-]*a?[\s-]*barres?|codebarres?|gencod|\bean(13|8)?\b/.test(n))return"cb";
+  if(/code[\s-]*a?[\s-]*barres?|codebarres?|gencod|\bean(13|8)?\b|\bgtin\b|\bitf14\b|barcode|scancode|\bcdbr\w*/.test(n))return"cb";
   if(n==="pcb"||n.indexOf("pcb")>=0||n.indexOf("colisage")>=0)return"pcb";
   if(n==="prix"||n==="pu"||n==="pmp"||n.indexOf("prix")>=0)return"prix";
   if(n.indexOf("support")>=0||n.indexOf("palette")>=0)return"support";
@@ -8157,9 +8157,9 @@ function importCat(file){gateMark("cat");readFile(file,function(rows){
     var iCmkp=colIdx("CMKP","CMKP MAXIMUM","CODE MARKETING");
     /* Quantité en commande — nécessaire pour « NC / ES à désadresser » */
     var iQcde=colIdx("QCDCKA MOYENNE","QCDCKA","QCOCKA MOYENNE","QCOCKA","QTE EN COMMANDE","QUANTITE EN COMMANDE");
-    var iCb=colIdx("CODE BARRE","CODE A BARRE","CODE-BARRE","CODE-BARRES","CODEBARRE","CODEBARRES","GENCOD","GENCODE","EAN","EAN13","EAN8");
+    var iCb=colIdx("CODE BARRE","CODE A BARRE","CODE-BARRE","CODE-BARRES","CODEBARRE","CODEBARRES","GENCOD","GENCODE","GENCOD EAN13","EAN","EAN13","EAN8","CODE EAN","EAN CODE","GTIN","ITF14","BARCODE","SCANCODE","CDBR","CDBRA","COD BARRE","CODE BARRE ARTICLE","CDBRA MAXIMUM","EAN MAXIMUM","GENCOD MAXIMUM","CDBR MAXIMUM");
     var pad=function(v,n){return String(v==null?"":v).trim().padStart(n,"0");};
-    var out=[],seen={},nCsta=0,nFour=0,nCmkp=0;
+    var out=[],seen={},nCsta=0,nFour=0,nCmkp=0,nCb=0;
     for(var r2=1;r2<rows.length;r2++){var row=rows[r2];if(!row||!row.length)continue;
       var zon=String(row[H["ZONPXA MAXIMUM"]]||"").trim(),nart=String(row[H["NART"]]||"").trim();if(!nart)continue;
       var g1=zon+pad(row[H["ALLPXA MAXIMUM"]],2),g2=String(row[H["TRVPXA MAXIMUM"]]||"").trim()+pad(row[H["BAIPXA MAXIMUM"]],2),g3=pad(row[H["NIVPXA MAXIMUM"]],2)+String(row[H["POSPXA MAXIMUM"]]||"").trim();
@@ -8170,20 +8170,23 @@ function importCat(file){gateMark("cat");readFile(file,function(rows){
       var cmkp=iCmkp!=null?String(row[iCmkp]!=null?row[iCmkp]:"").trim():"";
       var qcde=iQcde!=null?(Math.round(num(row[iQcde])||0)):null;
       var codebarre=iCb!=null?String(row[iCb]!=null?row[iCb]:"").trim():"";
-      if(csta)nCsta++;if(four)nFour++;if(cmkp)nCmkp++;
+      if(csta)nCsta++;if(four)nFour++;if(cmkp)nCmkp++;if(codebarre)nCb++;
       out.push({code:emp,art:nart,designation:String(row[H["LART"]]||"").trim(),zone:zon,allee:g1,adresse:g1+" "+g2+" "+g3,prix:Math.round(num(row[H["DPCHKA MOYENNE"]])||0),stockMachine:Math.round(num(row[H["QPHCKA MOYENNE"]])||0),classe:"",pcb:parseInt(row[H["NBPC"]],10)||"",addressed:addressed,csta:csta,cmkp:cmkp,qcde:qcde,fournisseur:four,codebarre:codebarre});}
     if(!out.length){toast("Catalogue : aucune ligne.");return;}
     var msgCol=(iCsta==null?"⚠️ colonne CSTA introuvable. ":"CSTA : "+nCsta+" article(s). ")
       +(iCmkp==null?"⚠️ colonne CMKP introuvable. ":"CMKP : "+nCmkp+" article(s). ")
       +(iQcde==null?"⚠️ colonne « qté en commande » introuvable. ":"")
-      +(iFour==null?"⚠️ colonne RSOCFO MAXIMUM introuvable.":"Fournisseurs : "+nFour+" article(s).");
+      +(iFour==null?"⚠️ colonne RSOCFO MAXIMUM introuvable. ":"Fournisseurs : "+nFour+" article(s). ")
+      +(iCb==null?"⚠️ colonne code barre introuvable (intitulé non reconnu — indiquez le nom exact de la colonne dans votre fichier).":"Code barre : "+nCb+" article(s).");
     return api("reference","POST",{kind:"catalogue",name:file.name,data:out,mapping:{format:"catalogue_articles"}}).then(loadData).then(function(){toast(out.length+" articles importés. "+msgCol);renderRefMeta();});}
   var d=detectMap(rows,{code:0,desc:1,zone:2,loc:3,prix:4,qty:5,cls:6,pcb:7}),m2=d.map,out2=[];
   for(var r3=d.start;r3<rows.length;r3++){var row2=rows[r3];if(!row2||!row2.length)continue;var code=m2.code!=null?String(row2[m2.code]||"").trim():"";if(!code)continue;
     var loc=m2.loc!=null?up(row2[m2.loc]):"",al=aisleOf(loc)||aisleOf(code),z=m2.zone!=null?up(row2[m2.zone]):"";if(!ZONES[z])z=(al.charAt(0)||"");
     out2.push({code:code,designation:m2.desc!=null?String(row2[m2.desc]||"").trim():"",zone:z,allee:al||loc,adresse:loc,prix:m2.prix!=null?(num(row2[m2.prix])||0):0,stockTheorique:m2.qty!=null?(num(row2[m2.qty])||0):0,classe:m2.cls!=null?(up(row2[m2.cls])||""):"",pcb:m2.pcb!=null?(num(row2[m2.pcb])||""):"",codebarre:m2.cb!=null?String(row2[m2.cb]||"").trim():""});}
   if(!out2.length){toast("Aucune ligne exploitable.");return;}
-  api("reference","POST",{kind:"catalogue",name:file.name,data:out2,mapping:m2}).then(loadData).then(function(){toast(out2.length+" articles importés.");renderRefMeta();});});}
+  var nCb2=out2.filter(function(o){return o.codebarre;}).length;
+  var msgCb2=m2.cb==null?" ⚠️ colonne code barre introuvable (intitulé non reconnu — indiquez le nom exact de la colonne dans votre fichier).":" Code barre : "+nCb2+" article(s).";
+  api("reference","POST",{kind:"catalogue",name:file.name,data:out2,mapping:m2}).then(loadData).then(function(){toast(out2.length+" articles importés."+msgCb2);renderRefMeta();});});}
 function readText(file,cb){var rd=new FileReader();rd.onload=function(e){cb(String(e.target.result||""));};rd.onerror=function(){toast("Lecture impossible.");};rd.readAsText(file,"ISO-8859-1");}
 var EMP_RE=/^[A-Z]\d{2}[A-Z]\d{2}\d{3}$/;
 function impRows(text){return text.split(/\r?\n/).filter(function(l){return l.indexOf("!")>=0;}).map(function(l){return l.split("!");});}
