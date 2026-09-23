@@ -302,6 +302,7 @@ body.side-collapsed #side-toggle{right:50%;transform:translateX(50%)}
 /* COMPTAGE */
 .count-input{width:90px;text-align:right;padding:6px 8px}
 .count-input.filled{border-color:var(--gold-ink);background:rgba(255,204,0,.06)}
+.cb-cell{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* BADGES */
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap}
@@ -4761,7 +4762,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
         { id: "u_std", matricule: "USER", numero: "", nom: "Utilisateur", fonction: "Opérateur", role: "responsable", sectors: [], password: hashPwd("ChangeMe123"), mustChangePassword: true }
       ],
       catalogue: [], picking: {}, supports: [], om: [], mapping: { catalogue: null, picking: null, supports: null },
-      counts: {}, supcounts: {}, suploc: {}, invest: {}, regule: {}, countmeta: {}, pickOverride: {}, rowLocked: {}, barcodes: {}, consignes: {},
+      counts: {}, supcounts: {}, suploc: {}, invest: {}, regule: {}, countmeta: {}, pickOverride: {}, rowLocked: {}, consignes: {},
       retours: [], regulSign: [], consSign: {},
       activities: [], meta: { cat: null, pick: null, sup: null, om: null }, log: [], settings: { blind: true }
     };
@@ -5094,7 +5095,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       save(true); log("import_" + b.kind, (b.name || "")); return { ok: true, meta: DB.meta };
     }
     if (path === "data" && method === "GET") {
-      return { catalogue: DB.catalogue, picking: DB.picking, supports: DB.supports, om: DB.om, mapping: DB.mapping, meta: DB.meta, counts: DB.counts, supcounts: DB.supcounts, suploc: DB.suploc, invest: DB.invest, regule: DB.regule, countmeta: DB.countmeta, pickOverride: DB.pickOverride, rowLocked: DB.rowLocked, barcodes: DB.barcodes, blind: DB.settings.blind, zones: ZONES, sectors: SECTORS };
+      return { catalogue: DB.catalogue, picking: DB.picking, supports: DB.supports, om: DB.om, mapping: DB.mapping, meta: DB.meta, counts: DB.counts, supcounts: DB.supcounts, suploc: DB.suploc, invest: DB.invest, regule: DB.regule, countmeta: DB.countmeta, pickOverride: DB.pickOverride, rowLocked: DB.rowLocked, blind: DB.settings.blind, zones: ZONES, sectors: SECTORS };
     }
     if (path === "count" && method === "POST") {
       if (!b.code) throw err("données invalides");
@@ -5117,7 +5118,6 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       else if (b.field === "loc") { DB.suploc[b.code] = DB.suploc[b.code] || {}; if (b.value) delete DB.suploc[b.code][b.key]; else DB.suploc[b.code][b.key] = false; }
       else if (b.field === "regule") { if (b.value) DB.regule[b.code] = b.value; else delete DB.regule[b.code]; }
       else if (b.field === "invest") { DB.invest[b.code] = b.value || { causes: [], note: "" }; if (!(b.value && ((b.value.causes || []).length || (b.value.note || "").trim()))) delete DB.invest[b.code]; }
-      else if (b.field === "codebarre") { DB.barcodes = DB.barcodes || {}; if (b.value === "" || b.value == null) delete DB.barcodes[b.code]; else DB.barcodes[b.code] = String(b.value).trim(); }
       DB.countmeta[b.code] = { by: cur.matricule + " · " + cur.nom, at: new Date().toISOString() };
       logStockControl(b, cur);
       save(); return { ok: true };
@@ -5135,7 +5135,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       DB.countmeta = {}; DB.pickOverride = {}; DB.rowLocked = {}; DB.consignes = {};
       DB.retours = []; DB.activities = []; DB.log = []; DB.settings = d0.settings;
       if (!keepRef) {
-        DB.catalogue = []; DB.picking = {}; DB.supports = []; DB.om = []; DB.barcodes = {};
+        DB.catalogue = []; DB.picking = {}; DB.supports = []; DB.om = [];
         DB.mapping = d0.mapping; DB.meta = d0.meta;
       }
       cur = null;
@@ -6073,7 +6073,7 @@ function statusCell(a,m){var b='<span class="badge '+m.status+'">'+m.label+'</sp
   else if(DATA.regule[a.code]==="faite")b+='<span class="badge rgok">Régule faite</span>';
   return b;}
 function ecartSpan(e){return e!=null?'<span class="ecart '+(e>0?"pos":(e<0?"neg":"zero"))+'">'+( e>0?"+":"")+e+'</span>':'<span class="ecart zero">—</span>';}
-function codebarreOf(a){return (DATA.barcodes&&DATA.barcodes[a.code]!=null)?String(DATA.barcodes[a.code]):String(a.codebarre||"");}
+function codebarreOf(a){return String(a.codebarre||"");}
 function classeOf(a){var cfg=cycleCfg();var c=(cfg&&cfg.cls&&cfg.cls[a.allee])?String(cfg.cls[a.allee]).toUpperCase():up(a.classe);return (c==="A"||c==="B"||c==="C")?c:"B";}
 function theoPickCellHtml(a,m){
   if(blind||(ME&&ME.role==="chef_secteur"))return maskT(m.theoPick);
@@ -6090,7 +6090,7 @@ function mainRow(a){var m=metrics(a),cls=classeOf(a);
   var lockedAttr=m.locked?' disabled title="Ligne conforme — verrouillée"':"";
   return '<tr class="main'+(m.stale?" stale-row":"")+(m.locked?" locked-row":"")+'" data-code="'+esc(a.code)+'"><td><button class="chev'+(openDetail[a.code]?" open":"")+" "+'" data-tg="'+esc(a.code)+'">▸</button></td>'
     +'<td>'+esc(a.adresse||a.allee||"—")+"</td><td>"+esc(a.art||a.code)+"</td><td>"+esc(a.designation||"")+flag+"</td>"
-    +'<td><input type="text" inputmode="numeric" class="count-input cb-input" placeholder="—" value="'+esc(codebarreOf(a))+'" data-cbc="'+esc(a.code)+'" title="Code-barres de l\'article (scanné ou saisi)"></td>'
+    +"<td class='cb-cell'>"+esc(codebarreOf(a)||"—")+"</td>"
     +"<td class='cen'>"+clsTag+"</td>"
     +'<td class="num m-tp">'+theoPickCellHtml(a,m)+"</td>"
     +'<td class="num"><input type="number" class="count-input'+(m.cPick!=null?" filled":"")+"\" min=\"0\" value=\""+esc(v)+"\" data-cnt=\""+esc(a.code)+"\""+lockedAttr+"></td>"
@@ -6151,7 +6151,6 @@ function onPick(code,v){DATA.rowLocked=DATA.rowLocked||{};DATA.pickOverride=DATA
   }
   postCount(code,"pick",null,v);liveUpdate(code);}
 function onTheoPick(code,v){DATA.pickOverride=DATA.pickOverride||{};if(v===""||v==null)delete DATA.pickOverride[code];else DATA.pickOverride[code]=v;postCount(code,"theopick",null,v);liveUpdate(code);}
-function onCodebarre(code,v){DATA.barcodes=DATA.barcodes||{};var vv=String(v||"").trim();if(vv==="")delete DATA.barcodes[code];else DATA.barcodes[code]=vv;postCount(code,"codebarre",null,vv);}
 function onSup(code,k,v){DATA.supcounts[code]=DATA.supcounts[code]||{};if(v==="")delete DATA.supcounts[code][k];else DATA.supcounts[code][k]=v;postCount(code,"sup",k,v);liveUpdate(code);}
 function onLoc(code,k,ch){DATA.suploc[code]=DATA.suploc[code]||{};if(ch)delete DATA.suploc[code][k];else DATA.suploc[code][k]=false;postCount(code,"loc",k,ch);liveUpdate(code);}
 function toggleCause(code,lbl,on){var r=DATA.invest[code]||{causes:[],note:""};var i=r.causes.indexOf(lbl);if(on&&i<0)r.causes.push(lbl);else if(!on&&i>=0)r.causes.splice(i,1);DATA.invest[code]=r;postCount(code,"invest",null,r);liveUpdate(code);}
@@ -6180,7 +6179,6 @@ $("tbody").addEventListener("blur",function(e){
 /* ---------- Délégation comptage ---------- */
 $("tbody").addEventListener("input",function(e){var i=e.target;
   if(i.classList.contains("pick-input")&&i.dataset.tpick)onTheoPick(i.dataset.tpick,i.value);
-  else if(i.classList.contains("cb-input")&&i.dataset.cbc)onCodebarre(i.dataset.cbc,i.value);
   else if(i.classList.contains("count-input")&&i.dataset.cnt)onPick(i.dataset.cnt,i.value);
   else if(i.classList.contains("sup-in"))onSup(i.dataset.sc,i.dataset.k,i.value);
   else if(i.classList.contains("cause-note"))setNote(i.dataset.cn,i.value);});
