@@ -4212,7 +4212,40 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
         #v-palettes .pl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
         #v-palettes .pl-check{width:auto;accent-color:var(--navy)}
         #v-palettes td.pl-cen{text-align:center}
+        #v-palettes .pl-imp-file{font-weight:400;font-size:12px;padding:8px}
       </style>
+
+      <div class="card">
+        <div class="card-header"><h3>📥 Import des extractions quotidiennes</h3><span class="ct">IMP198 (implantation des supports) + Proposition d'emplacement — génère des fiches prêtes à imprimer</span></div>
+        <div class="row" style="align-items:flex-end;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:260px">
+            <label class="cs-lbl">Extraction IMP198 — implantation des supports (.txt)</label>
+            <input type="file" id="pl-imp198-file" class="pl-imp-file" accept=".txt">
+            <div class="ct" id="pl-imp198-status" style="margin-top:4px">Aucun fichier chargé.</div>
+          </div>
+          <div style="flex:1;min-width:260px">
+            <label class="cs-lbl">Proposition d'emplacement (.xlsx)</label>
+            <input type="file" id="pl-propo-file" class="pl-imp-file" accept=".xlsx,.xls">
+            <div class="ct" id="pl-propo-status" style="margin-top:4px">Aucun fichier chargé.</div>
+          </div>
+        </div>
+        <div class="row" style="align-items:flex-end;gap:16px;margin-top:12px;flex-wrap:wrap">
+          <div><label class="cs-lbl">Date d'entrée (lot)</label><input type="date" id="pl-import-date"></div>
+          <div style="flex:1;min-width:200px"><label class="cs-lbl">Réceptionné par (lot)</label><input id="pl-import-recept" placeholder="Nom du réceptionnaire" autocomplete="off"></div>
+          <button class="btn btn-gold" id="pl-import-gen">⚙️ Générer les fiches proposées</button>
+        </div>
+        <div class="ct" style="margin-top:8px;font-style:italic">Rapprochement par code article : l'adresse de destination et le fournisseur viennent de la proposition d'emplacement ; le N° de support, l'emplacement actuel et le colisage réel viennent de l'IMP198 du jour. Si un article a plusieurs supports en stock, chacun apparaît (le premier est présélectionné) ; si aucun support n'est trouvé, la fiche reste modifiable après coup. Vérifiez la sélection avant d'enregistrer ou d'imprimer.</div>
+        <div id="pl-import-wrap" style="display:none;margin-top:16px">
+          <div class="row" style="margin-bottom:10px">
+            <button class="btn btn-sm" id="pl-import-print">🖨️ Imprimer la sélection</button>
+            <button class="btn btn-green btn-sm" id="pl-import-save">💾 Enregistrer la sélection</button>
+            <span class="ct" id="pl-import-sel-count"></span>
+          </div>
+          <div class="tbl-scroll"><table class="gridtab">
+            <thead><tr><th><input type="checkbox" class="pl-check" id="pl-import-selall"></th><th>Statut</th><th>Code</th><th>Libellé</th><th>Ancien emplacement</th><th>Nouvelle adresse</th><th class="cen">PCB</th><th class="cen">Colis</th><th class="cen">Qté</th><th>Fourn.</th><th>N° support</th></tr></thead>
+            <tbody id="pl-import-body"></tbody></table></div>
+        </div>
+      </div>
 
       <div class="card">
         <div class="card-header"><h3>🏷️ Créer / éditer une fiche palette</h3><span class="ct" id="pl-mode-lbl">Nouvelle fiche</span></div>
@@ -9100,8 +9133,173 @@ function plRender(){
   fl.sort(function(x,y){return x.localeCompare(y,"fr");});
   if($("pl-four-list"))$("pl-four-list").innerHTML=fl.map(function(f){return '<option value="'+esc(f)+'">';}).join("");
 }
+
+/* ---------- Import quotidien IMP198 + Proposition d'emplacement ---------- */
+var _plImp198=null, _plPropo=null, _plCandidates=[], _plImportBound=false;
+function plParseImp198(text){
+  var byEmp={},rows=[];
+  impRows(text).forEach(function(p){
+    var emp=(p[1]||"").trim();
+    if(!EMP_RE.test(emp))return;
+    var nart=(p[3]||"").trim();
+    if(!nart)return;
+    var rec={emp:emp,support:(p[2]||"").trim(),code:nart,designation:(p[4]||"").trim(),pcb:impInt(p[12])||0,colis:impInt(p[16])||0};
+    rows.push(rec);byEmp[emp]=rec;
+  });
+  return {rows:rows,byEmp:byEmp};
+}
+function plReadPropositionFile(file,cb){
+  var rd=new FileReader();
+  rd.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:"array"});
+      var wsName=wb.SheetNames.find(function(n){return /proposition/i.test(n);})||wb.SheetNames[0];
+      cb(XLSX.utils.sheet_to_json(wb.Sheets[wsName],{header:1,defval:"",blankrows:false}));
+    }catch(err){toast("Lecture Excel impossible.");}
+  };
+  rd.onerror=function(){toast("Lecture impossible.");};
+  rd.readAsArrayBuffer(file);
+}
+function plParsePropositionRows(rows){
+  if(!rows||!rows.length)return [];
+  var head=rows[0]||[],idx={};
+  head.forEach(function(h,i){
+    var n=norm(h);
+    if(idx.art==null&&n.indexOf("article")>=0)idx.art=i;
+    if(idx.des==null&&(n.indexOf("designation")>=0||n.indexOf("libelle")>=0))idx.des=i;
+    if(idx.pcb==null&&n==="pcb")idx.pcb=i;
+    if(idx.four==null&&n.indexOf("fournisseur")>=0)idx.four=i;
+    if(idx.anc==null&&n.indexOf("ancien")>=0)idx.anc=i;
+    if(idx.nouv==null&&n.indexOf("nouvel")>=0)idx.nouv=i;
+  });
+  if(idx.art==null||idx.nouv==null){toast("Colonnes « Article » ou « Nouvel emplacement » introuvables dans le fichier.");return [];}
+  var out=[];
+  for(var r=1;r<rows.length;r++){
+    var row=rows[r];if(!row||!row.length)continue;
+    var art=String(row[idx.art]||"").trim();if(!art)continue;
+    out.push({
+      code:art,
+      libelle:idx.des!=null?String(row[idx.des]||"").trim():"",
+      pcb:idx.pcb!=null?(parseInt(row[idx.pcb],10)||0):0,
+      fourn:idx.four!=null?String(row[idx.four]||"").trim():"",
+      ancien:idx.anc!=null?String(row[idx.anc]||"").trim():"",
+      nouvel:String(row[idx.nouv]||"").trim()
+    });
+  }
+  return out;
+}
+function plEmpKey(s){return String(s||"").toUpperCase().replace(/\s+/g,"");}
+function plFormatAdresse(emp){
+  var k=plEmpKey(emp);
+  if(/^[A-Z0-9]{9}$/.test(k))return k.slice(0,3)+" "+k.slice(3,6)+" "+k.slice(6,9);
+  return String(emp||"").trim();
+}
+function plBuildCandidates(propoRows,imp198){
+  /* Le rapprochement se fait par code article (N°Article), pas par ancien
+     emplacement : les supports tournent dans l'entrepôt en permanence, si bien
+     que l'« ancien emplacement » figé du fichier de proposition ne correspond
+     presque jamais à la position réelle du jour dans l'IMP198. Le code article
+     reste, lui, un identifiant stable. */
+  var byCode={};
+  ((imp198&&imp198.rows)||[]).forEach(function(r){(byCode[r.code]=byCode[r.code]||[]).push(r);});
+  var out=[],seenCode={};
+  propoRows.forEach(function(p){
+    var matches=byCode[p.code]||[];
+    if(!matches.length){
+      out.push({
+        code:p.code,libelle:p.libelle,adresse:plFormatAdresse(p.nouvel),
+        ancienAdresse:plFormatAdresse(p.ancien),colis:0,pcb:p.pcb||0,fourn:p.fourn||"",
+        support:"",matched:false,extra:false
+      });
+      return;
+    }
+    matches.forEach(function(m){
+      out.push({
+        code:p.code,libelle:p.libelle||m.designation,adresse:plFormatAdresse(p.nouvel),
+        ancienAdresse:plFormatAdresse(m.emp),colis:m.colis,pcb:p.pcb||m.pcb,fourn:p.fourn||"",
+        support:m.support,matched:true,extra:!!seenCode[p.code]
+      });
+      seenCode[p.code]=true;
+    });
+  });
+  return out;
+}
+function plGenerateCandidates(){
+  if(!_plPropo||!_plPropo.length){toast("Chargez d'abord le fichier de proposition d'emplacement.");return;}
+  _plCandidates=plBuildCandidates(_plPropo,_plImp198);
+  var h="";
+  _plCandidates.forEach(function(c,i){
+    var statusBadge=!c.matched?'<span class="badge pending">⚠️ introuvable en stock</span>'
+      :(c.extra?'<span class="badge supcheck">➕ autre support</span>':'<span class="badge ok">✅ support trouvé</span>');
+    h+='<tr'+(c.extra?' style="opacity:.72"':'')+'><td><input type="checkbox" class="pl-check" data-i="'+i+'"'+(c.extra?"":" checked")+'></td>'
+      +'<td>'+statusBadge+'</td>'
+      +'<td><b>'+esc(c.code)+'</b></td><td>'+esc(c.libelle)+'</td><td>'+esc(c.ancienAdresse)+'</td><td>'+esc(c.adresse)+'</td>'
+      +'<td class="pl-cen">'+(c.pcb||0)+'</td><td class="pl-cen">'+(c.colis||0)+'</td><td class="pl-cen">'+((c.colis||0)*(c.pcb||0)).toLocaleString("fr-FR")+'</td>'
+      +'<td>'+esc(c.fourn)+'</td><td>'+esc(c.support||"—")+'</td></tr>';
+  });
+  $("pl-import-body").innerHTML=h;
+  $("pl-import-wrap").style.display="";
+  Array.prototype.forEach.call(document.querySelectorAll("#pl-import-body .pl-check"),function(c){c.onchange=plUpdateImportSelCount;});
+  if($("pl-import-selall"))$("pl-import-selall").checked=false;
+  plUpdateImportSelCount();
+  var nMatch=_plCandidates.filter(function(c){return c.matched&&!c.extra;}).length;
+  var nExtra=_plCandidates.filter(function(c){return c.extra;}).length;
+  toast(_plCandidates.length+" fiche(s) proposée(s) — "+nMatch+" avec support localisé"+(nExtra?" ("+nExtra+" support(s) supplémentaire(s) du même article, décochés)":"")+".");
+}
+function plUpdateImportSelCount(){
+  var n=document.querySelectorAll("#pl-import-body .pl-check:checked").length;
+  $("pl-import-sel-count").textContent=n?n+" fiche(s) sélectionnée(s)":"";
+}
+function plSelectedCandidates(){
+  var idxs=Array.prototype.map.call(document.querySelectorAll("#pl-import-body .pl-check:checked"),function(c){return parseInt(c.dataset.i,10);});
+  return idxs.map(function(i){return _plCandidates[i];}).filter(Boolean);
+}
+function plImportAction(doSave){
+  var sel=plSelectedCandidates();
+  if(!sel.length){toast("Sélectionnez au moins une fiche.");return;}
+  var dateE=$("pl-import-date").value||rtISO(new Date());
+  var recept=$("pl-import-recept").value.trim()||(ME&&ME.nom)||"";
+  var list=sel.map(function(c){return {code:c.code,libelle:c.libelle,adresse:c.adresse,colis:c.colis,pcb:c.pcb,fourn:c.fourn,dateEntree:dateE,support:c.support,receptionnePar:recept};});
+  if(!doSave){plPrintMany(list);return;}
+  var chain=Promise.resolve();
+  list.forEach(function(d){chain=chain.then(function(){return api("palettes","POST",d);});});
+  chain.then(function(){
+    toast(list.length+" fiche(s) enregistrée(s) ✅");
+    api("palettes").then(function(r){_pals=r.palettes||[];plRender();});
+  }).catch(function(e){toast(e.message);});
+}
+function plBindImport(){
+  if(_plImportBound)return;_plImportBound=true;
+  $("pl-import-date").value=rtISO(new Date());
+  $("pl-imp198-file").addEventListener("change",function(e){
+    var f=e.target.files[0];if(!f)return;
+    readText(f,function(text){
+      _plImp198=plParseImp198(text);
+      $("pl-imp198-status").textContent=_plImp198.rows.length+" support(s) lus — "+f.name;
+      toast(_plImp198.rows.length+" ligne(s) IMP198 chargées.");
+    });
+  });
+  $("pl-propo-file").addEventListener("change",function(e){
+    var f=e.target.files[0];if(!f)return;
+    plReadPropositionFile(f,function(rows){
+      _plPropo=plParsePropositionRows(rows);
+      $("pl-propo-status").textContent=_plPropo.length+" article(s) lus — "+f.name;
+      if(_plPropo.length)toast(_plPropo.length+" ligne(s) de proposition chargées.");
+    });
+  });
+  $("pl-import-gen").onclick=plGenerateCandidates;
+  $("pl-import-selall").onchange=function(){
+    var on=$("pl-import-selall").checked;
+    Array.prototype.forEach.call(document.querySelectorAll("#pl-import-body .pl-check"),function(c){c.checked=on;});
+    plUpdateImportSelCount();
+  };
+  $("pl-import-print").onclick=function(){plImportAction(false);};
+  $("pl-import-save").onclick=function(){plImportAction(true);};
+}
+
 function plBind(){
   if(_plBound)return;_plBound=true;
+  plBindImport();
   ["pl-code","pl-libelle","pl-adresse","pl-fourn","pl-date","pl-support","pl-recept"].forEach(function(id){
     $(id).addEventListener("input",plFillPreview);
   });
