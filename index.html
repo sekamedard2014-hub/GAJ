@@ -9026,11 +9026,15 @@ function plUpdateQte(){var c=plNum($("pl-colis").value),p=plNum($("pl-pcb").valu
 function plAutofillFromCatalogue(){
   var code=$("pl-code").value.trim();
   var a=_artIndex&&_artIndex[code];
-  if(!a)return;
-  if(!$("pl-libelle").value.trim())$("pl-libelle").value=a.designation||"";
-  if(!$("pl-adresse").value.trim())$("pl-adresse").value=a.adresse||"";
-  if(!$("pl-pcb").value)$("pl-pcb").value=a.pcb||"";
-  if(!$("pl-fourn").value.trim())$("pl-fourn").value=a.fournisseur||"";
+  var p=_plPropoByCode&&_plPropoByCode[code];
+  if(!a&&!p)return;
+  /* La proposition d'emplacement (nouvelle adresse H01) est prioritaire sur le
+     catalogue général, qui ne contient que l'ancienne adresse (implantation
+     actuelle) : sans ça, l'auto-complétion proposait l'adresse de départ. */
+  if(!$("pl-libelle").value.trim())$("pl-libelle").value=(p&&p.libelle)||(a&&a.designation)||"";
+  if(!$("pl-adresse").value.trim())$("pl-adresse").value=(p?plFormatAdresse(p.nouvel):"")||(a&&a.adresse)||"";
+  if(!$("pl-pcb").value)$("pl-pcb").value=(p&&p.pcb)||(a&&a.pcb)||"";
+  if(!$("pl-fourn").value.trim())$("pl-fourn").value=(p&&p.fourn)||(a&&a.fournisseur)||"";
   plUpdateQte();plFillPreview();
 }
 function plResetForm(){
@@ -9135,7 +9139,7 @@ function plRender(){
 }
 
 /* ---------- Import quotidien IMP198 + Proposition d'emplacement ---------- */
-var _plImp198=null, _plPropo=null, _plCandidates=[], _plImportBound=false;
+var _plImp198=null, _plPropo=null, _plPropoByCode=null, _plCandidates=[], _plImportBound=false;
 function plParseImp198(text){
   var byEmp={},rows=[];
   impRows(text).forEach(function(p){
@@ -9283,6 +9287,8 @@ function plBindImport(){
     var f=e.target.files[0];if(!f)return;
     plReadPropositionFile(f,function(rows){
       _plPropo=plParsePropositionRows(rows);
+      _plPropoByCode={};
+      _plPropo.forEach(function(p){if(!_plPropoByCode[p.code])_plPropoByCode[p.code]=p;});
       $("pl-propo-status").textContent=_plPropo.length+" article(s) lus — "+f.name;
       if(_plPropo.length)toast(_plPropo.length+" ligne(s) de proposition chargées.");
     });
