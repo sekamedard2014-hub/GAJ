@@ -4202,9 +4202,9 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
         .pal-ticket .pt-cp-x,.pal-ticket .pt-cp-eq{font-size:24px;font-weight:800;padding:0 2px 4px;color:#333}
         .pal-ticket .pt-num{font-size:28px;font-weight:900;line-height:1}
         .pal-ticket .pt-shaded{background:#e3e3e3;padding:3px 11px;border-radius:3px;display:inline-block}
-        .pal-ticket .pt-row{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3px}
-        .pal-ticket .pt-lbl-l{font-size:9.5px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.14em;line-height:1.25}
-        .pal-ticket .pt-val-r{font-size:21px;font-weight:900;text-align:center;overflow-wrap:anywhere}
+        .pal-ticket .pt-row{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:10px}
+        .pal-ticket .pt-lbl-l{font-size:11px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.04em;line-height:1.25;flex:none}
+        .pal-ticket .pt-val-r{font-size:21px;font-weight:900;text-align:right;flex:1;overflow-wrap:anywhere}
         #v-palettes .pl-editor{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
         #v-palettes .pl-form{flex:1.3;min-width:320px}
         #v-palettes .pl-preview-col{flex:1;min-width:300px;position:sticky;top:6px}
@@ -8981,9 +8981,9 @@ var PAL_TICKET_CSS=".pal-ticket{width:380px;max-width:100%;margin:0 auto;backgro
   +".pal-ticket .pt-cp-x,.pal-ticket .pt-cp-eq{font-size:24px;font-weight:800;padding:0 2px 4px;color:#333}"
   +".pal-ticket .pt-num{font-size:28px;font-weight:900;line-height:1}"
   +".pal-ticket .pt-shaded{background:#e3e3e3;padding:3px 11px;border-radius:3px;display:inline-block}"
-  +".pal-ticket .pt-row{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3px}"
-  +".pal-ticket .pt-lbl-l{font-size:9.5px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.14em;line-height:1.25}"
-  +".pal-ticket .pt-val-r{font-size:21px;font-weight:900;text-align:center;overflow-wrap:anywhere}";
+  +".pal-ticket .pt-row{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:10px}"
+  +".pal-ticket .pt-lbl-l{font-size:11px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.04em;line-height:1.25;flex:none}"
+  +".pal-ticket .pt-val-r{font-size:21px;font-weight:900;text-align:right;flex:1;overflow-wrap:anywhere}";
 
 function plNum(v){var n=parseInt(v,10);return isNaN(n)||n<0?0:n;}
 function escNl(s){return esc(s).replace(/\n/g,"<br>");}
