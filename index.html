@@ -4186,6 +4186,92 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
       </div>
     </div>
 
+    <!-- ========== FICHES PALETTES ========== -->
+    <div class="view" id="v-palettes">
+      <style>
+        .pal-ticket{width:380px;max-width:100%;margin:0 auto;background:#fff;border:1.5px solid #111;border-radius:3px;font-family:Arial,Helvetica,sans-serif;color:#111;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.12)}
+        .pal-ticket .pt-sec{padding:11px 16px;border-bottom:1px solid #ccc;text-align:center}
+        .pal-ticket .pt-sec:last-child{border-bottom:none}
+        .pal-ticket .pt-lbl{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:#555;text-transform:uppercase;margin-bottom:4px}
+        .pal-ticket .pt-code{font-size:34px;font-weight:900;letter-spacing:.01em;line-height:1.05;word-break:break-word}
+        .pal-ticket .pt-libelle{font-size:18px;font-weight:800;line-height:1.22;text-transform:uppercase;white-space:pre-line}
+        .pal-ticket .pt-adresse{font-size:32px;font-weight:900;letter-spacing:.04em;word-break:break-word}
+        .pal-ticket .pt-colispcb{display:flex;align-items:flex-end;justify-content:center;gap:8px;padding:11px 8px}
+        .pal-ticket .pt-cp-col{display:flex;flex-direction:column;align-items:center;min-width:0}
+        .pal-ticket .pt-cp-col .pt-lbl{margin-bottom:3px}
+        .pal-ticket .pt-cp-x,.pal-ticket .pt-cp-eq{font-size:24px;font-weight:800;padding:0 2px 4px;color:#333}
+        .pal-ticket .pt-num{font-size:28px;font-weight:900;line-height:1}
+        .pal-ticket .pt-shaded{background:#e3e3e3;padding:3px 11px;border-radius:3px;display:inline-block}
+        .pal-ticket .pt-row{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:10px}
+        .pal-ticket .pt-lbl-l{font-size:11px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.04em;line-height:1.25;flex:none;white-space:pre-line}
+        .pal-ticket .pt-val-r{font-size:21px;font-weight:900;text-align:right;flex:1;overflow-wrap:anywhere}
+        #v-palettes .pl-editor{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+        #v-palettes .pl-form{flex:1.3;min-width:320px}
+        #v-palettes .pl-preview-col{flex:1;min-width:300px;position:sticky;top:6px}
+        #v-palettes .pl-preview-tag{text-align:center;font-size:11px;color:var(--muted);margin-top:10px}
+        #v-palettes .pl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+        #v-palettes .pl-check{width:auto;accent-color:var(--navy)}
+        #v-palettes td.pl-cen{text-align:center}
+      </style>
+
+      <div class="card">
+        <div class="card-header"><h3>🏷️ Créer / éditer une fiche palette</h3><span class="ct" id="pl-mode-lbl">Nouvelle fiche</span></div>
+        <div class="pl-editor">
+          <div class="pl-form">
+            <input type="hidden" id="pl-id">
+            <div class="pl-grid">
+              <div><label class="cs-lbl">Code article</label><input id="pl-code" list="art-list2" placeholder="Ex. 100341407" autocomplete="off"></div>
+              <div style="grid-column:span 2"><label class="cs-lbl">Fournisseur</label><input id="pl-fourn" list="pl-four-list" placeholder="Ex. ARDEX" autocomplete="off"></div>
+            </div>
+            <div style="margin-top:10px"><label class="cs-lbl">Libellé article</label><textarea id="pl-libelle" rows="2" placeholder="Ex. BARQ BOUCH 70P&#10;BLC 182*135*25" style="resize:vertical"></textarea></div>
+            <div style="margin-top:10px"><label class="cs-lbl">Adresse picking</label><input id="pl-adresse" placeholder="Ex. H01 D02 001" autocomplete="off"></div>
+            <div class="pl-grid" style="margin-top:10px">
+              <div><label class="cs-lbl">Colis</label><input type="number" min="0" id="pl-colis" placeholder="0"></div>
+              <div><label class="cs-lbl">PCB</label><input type="number" min="0" id="pl-pcb" placeholder="0"></div>
+              <div><label class="cs-lbl">Quantité unitaire</label><input id="pl-qte" disabled style="font-weight:800"></div>
+            </div>
+            <div class="pl-grid" style="margin-top:10px">
+              <div><label class="cs-lbl">Date d'entrée</label><input type="date" id="pl-date"></div>
+              <div><label class="cs-lbl">N° support</label><input id="pl-support" placeholder="Ex. 167625" autocomplete="off"></div>
+              <div><label class="cs-lbl">Exemplaires à imprimer</label><input type="number" min="1" id="pl-copies" value="1"></div>
+            </div>
+            <div style="margin-top:10px"><label class="cs-lbl">Réceptionné par</label><input id="pl-recept" placeholder="Ex. SIE YADIN" autocomplete="off"></div>
+            <div class="row" style="margin-top:14px">
+              <button class="btn btn-green" id="pl-save">💾 Enregistrer la fiche</button>
+              <button class="btn btn-sm" id="pl-print">🖨️ Imprimer cette fiche</button>
+              <button class="btn btn-sm" id="pl-dup" style="display:none">📄 Dupliquer</button>
+              <button class="btn btn-sm" id="pl-reset">✕ Nouvelle fiche</button>
+            </div>
+          </div>
+          <div class="pl-preview-col">
+            <div id="pl-preview"></div>
+            <div class="pl-preview-tag">Aperçu en direct — identique à l'impression</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="l">Fiches enregistrées</div><div class="v" id="pl-k-n">0</div></div>
+        <div class="kpi"><div class="l">Quantité unitaire cumulée</div><div class="v" id="pl-k-qte">0</div></div>
+        <div class="kpi"><div class="l">Fournisseurs distincts</div><div class="v" id="pl-k-four">0</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Fiches palettes enregistrées</h3>
+          <input id="pl-search" placeholder="🔎 Code, libellé, adresse, support, fournisseur…" style="max-width:300px">
+        </div>
+        <div class="row" style="margin-bottom:10px">
+          <button class="btn btn-sm" id="pl-print-sel">🖨️ Imprimer la sélection</button>
+          <span class="ct" id="pl-sel-count"></span>
+        </div>
+        <div class="tbl-scroll"><table class="gridtab">
+          <thead><tr><th><input type="checkbox" class="pl-check" id="pl-selall"></th><th>Code</th><th>Libellé</th><th>Adresse picking</th><th class="cen">Colis×PCB</th><th class="cen">Qté unit.</th><th>Fourn.</th><th>Date entrée</th><th>N° support</th><th>Réceptionné par</th><th></th></tr></thead>
+          <tbody id="pl-body"></tbody></table></div>
+        <div id="pl-empty" style="text-align:center;color:var(--muted);padding:24px;display:none">Aucune fiche palette enregistrée pour le moment.</div>
+      </div>
+      <datalist id="pl-four-list"></datalist>
+    </div>
+
     <!-- ========== RAPPORTS ========== -->
     <div class="view" id="v-rapp">
       <div class="card"><h3>Générer un rapport</h3>
@@ -4762,7 +4848,7 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       ],
       catalogue: [], picking: {}, supports: [], om: [], mapping: { catalogue: null, picking: null, supports: null },
       counts: {}, supcounts: {}, suploc: {}, invest: {}, regule: {}, countmeta: {}, pickOverride: {}, rowLocked: {}, consignes: {},
-      retours: [], regulSign: [], consSign: {},
+      retours: [], regulSign: [], consSign: {}, palettes: [],
       activities: [], meta: { cat: null, pick: null, sup: null, om: null }, log: [], settings: { blind: true }
     };
   }
@@ -5027,6 +5113,38 @@ var XLSX={};function make_xlsx_lib(a){a.version="0.18.5",a.style_version="1.2.0"
       }
     }
 
+    if (path === "palettes") {
+      if (method === "GET") return { palettes: DB.palettes || [] };
+      if (method === "POST") {
+        var plCode = String(b.code || "").trim();
+        if (!plCode) throw err("Code article requis");
+        var plAdr = String(b.adresse || "").trim();
+        if (!plAdr) throw err("Adresse picking requise");
+        var plColis = parseInt(b.colis, 10); if (isNaN(plColis) || plColis < 0) plColis = 0;
+        var plPcb = parseInt(b.pcb, 10); if (isNaN(plPcb) || plPcb < 0) plPcb = 0;
+        DB.palettes = DB.palettes || [];
+        var plId = b.id ? String(b.id) : "";
+        var plRec = {
+          id: plId || uid("pal_"),
+          code: plCode, libelle: String(b.libelle || "").trim(), adresse: plAdr,
+          colis: plColis, pcb: plPcb, qte: plColis * plPcb,
+          fourn: String(b.fourn || "").trim(), dateEntree: b.dateEntree || "",
+          support: String(b.support || "").trim(), receptionnePar: String(b.receptionnePar || "").trim(),
+          userId: cur.id, userNom: cur.nom, at: new Date().toISOString()
+        };
+        var plIdx = plId ? DB.palettes.findIndex(function (x) { return x.id === plId; }) : -1;
+        if (plIdx >= 0) { plRec.createdAt = DB.palettes[plIdx].createdAt || DB.palettes[plIdx].at; DB.palettes[plIdx] = plRec; }
+        else DB.palettes.unshift(plRec);
+        save(); log("fiche_palette", plCode + " · " + plAdr + " · support " + (plRec.support || "—"));
+        return { ok: true, id: plRec.id };
+      }
+      if (method === "DELETE") {
+        DB.palettes = (DB.palettes || []).filter(function (x) { return x.id !== b.id; });
+        save(); log("suppression_fiche_palette", b.id);
+        return { ok: true };
+      }
+    }
+
     if (path === "password") {
       var pOld = String(b.old || "").trim(), pNew = String(b.new || "").trim();
       if (cur.password !== hashPwd(pOld)) throw err("ancien mot de passe incorrect");
@@ -5284,7 +5402,8 @@ var VIEW_META={
   ref:["\ud83d\udce5 R\u00e9f\u00e9rentiel","Import & gestion des donn\u00e9es"],
   users:["\ud83d\udc65 Utilisateurs & all\u00e9es","Comptes, permissions & all\u00e9es de suivi des OM"],
   adress:["\ud83d\udccd Suivi param\u00e9trage","Statuts articles (AC/NA/NC) \u00b7 stock sans emplacement picking \u00b7 emplacement picking sans stock"],
-  log:["\ud83d\udfe2 Pr\u00e9sence & journal","Connexions du jour & historique des actions"]
+  log:["\ud83d\udfe2 Pr\u00e9sence & journal","Connexions du jour & historique des actions"],
+  palettes:["\ud83c\udff7\ufe0f Fiches palettes","G\u00e9n\u00e9ration et \u00e9dition de fiches d'identification palette \u00b7 adresse picking, colis, PCB & support"]
 };
 var curZone="", curAllee="", curTravee="", curFournisseur="", filter="all", search="", openDetail={}, blind=true;
 var supportsByCode={}, _artIndex={};
@@ -5870,7 +5989,7 @@ function selectGroup(gid,view){
   selectTab(view||g.items[0].id);
 }
 
-var VIEW_IDS=["compte","activ","regarn","retour","consigne","dash","rapp","bdd","adress","ref","users","log","verif"];
+var VIEW_IDS=["compte","activ","regarn","retour","consigne","dash","rapp","bdd","adress","ref","users","log","verif","palettes"];
 function selectTab(v){
   closeSideMobile();
   var g=groupOf(v)||CURRENT_GROUP;
@@ -5894,6 +6013,7 @@ function selectTab(v){
   if(v==="ref")renderRefMeta();
   if(v==="adress")renderAdress();
   if(v==="verif")renderVerif();
+  if(v==="palettes")renderPalettes();
   if(typeof sortBind==="function")setTimeout(sortBind,0);
 }
 
@@ -8811,6 +8931,204 @@ function rtXls(){
   toast("Export Excel généré 📊");
 }
 
+/* ============================================================
+   FICHES PALETTES — génération & édition d'étiquettes palette
+   ============================================================ */
+var _pals=[], _plBound=false;
+var PAL_TICKET_CSS=".pal-ticket{width:380px;max-width:100%;margin:0 auto;background:#fff;border:1.5px solid #111;border-radius:3px;font-family:Arial,Helvetica,sans-serif;color:#111;overflow:hidden}"
+  +".pal-ticket .pt-sec{padding:11px 16px;border-bottom:1px solid #ccc;text-align:center}"
+  +".pal-ticket .pt-sec:last-child{border-bottom:none}"
+  +".pal-ticket .pt-lbl{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:#555;text-transform:uppercase;margin-bottom:4px}"
+  +".pal-ticket .pt-code{font-size:34px;font-weight:900;letter-spacing:.01em;line-height:1.05;word-break:break-word}"
+  +".pal-ticket .pt-libelle{font-size:18px;font-weight:800;line-height:1.22;text-transform:uppercase}"
+  +".pal-ticket .pt-adresse{font-size:32px;font-weight:900;letter-spacing:.04em;word-break:break-word}"
+  +".pal-ticket .pt-colispcb{display:flex;align-items:flex-end;justify-content:center;gap:8px;padding:11px 8px}"
+  +".pal-ticket .pt-cp-col{display:flex;flex-direction:column;align-items:center;min-width:0}"
+  +".pal-ticket .pt-cp-col .pt-lbl{margin-bottom:3px}"
+  +".pal-ticket .pt-cp-x,.pal-ticket .pt-cp-eq{font-size:24px;font-weight:800;padding:0 2px 4px;color:#333}"
+  +".pal-ticket .pt-num{font-size:28px;font-weight:900;line-height:1}"
+  +".pal-ticket .pt-shaded{background:#e3e3e3;padding:3px 11px;border-radius:3px;display:inline-block}"
+  +".pal-ticket .pt-row{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:10px}"
+  +".pal-ticket .pt-lbl-l{font-size:11px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.04em;line-height:1.25;flex:none}"
+  +".pal-ticket .pt-val-r{font-size:21px;font-weight:900;text-align:right;flex:1;overflow-wrap:anywhere}";
+
+function plNum(v){var n=parseInt(v,10);return isNaN(n)||n<0?0:n;}
+function escNl(s){return esc(s).replace(/\n/g,"<br>");}
+function plFormData(){
+  return {
+    id:$("pl-id").value||"",
+    code:$("pl-code").value.trim(),
+    libelle:$("pl-libelle").value.trim(),
+    adresse:$("pl-adresse").value.trim(),
+    colis:plNum($("pl-colis").value),
+    pcb:plNum($("pl-pcb").value),
+    fourn:$("pl-fourn").value.trim(),
+    dateEntree:$("pl-date").value||"",
+    support:$("pl-support").value.trim(),
+    receptionnePar:$("pl-recept").value.trim()
+  };
+}
+function plTicketHtml(d){
+  var qte=(d.colis||0)*(d.pcb||0);
+  var empty=!d.code&&!d.adresse;
+  return '<div class="pal-ticket'+(empty?' pal-empty':'')+'">'
+    +'<div class="pt-sec"><div class="pt-lbl">Code article</div><div class="pt-code">'+esc(d.code||"—")+'</div></div>'
+    +'<div class="pt-sec"><div class="pt-lbl">Libellé article</div><div class="pt-libelle">'+escNl(d.libelle||"—")+'</div></div>'
+    +'<div class="pt-sec"><div class="pt-lbl">Adresse picking</div><div class="pt-adresse">'+esc(d.adresse||"—")+'</div></div>'
+    +'<div class="pt-sec"><div class="pt-colispcb">'
+      +'<div class="pt-cp-col"><div class="pt-lbl">Colis</div><div class="pt-num">'+(d.colis||0)+'</div></div>'
+      +'<div class="pt-cp-x">x</div>'
+      +'<div class="pt-cp-col"><div class="pt-lbl">PCB</div><div class="pt-num">'+(d.pcb||0)+'</div></div>'
+      +'<div class="pt-cp-eq">=</div>'
+      +'<div class="pt-cp-col"><div class="pt-lbl">Quantité unitaire</div><div class="pt-num pt-shaded">'+qte.toLocaleString("fr-FR")+'</div></div>'
+    +'</div></div>'
+    +'<div class="pt-sec pt-row"><div class="pt-lbl-l">Fourn.</div><div class="pt-val-r">'+esc(d.fourn||"—")+'</div></div>'
+    +'<div class="pt-sec pt-row"><div class="pt-lbl-l">Date<br>entrée</div><div class="pt-val-r">'+(d.dateEntree?rtFR(d.dateEntree):"—")+'</div></div>'
+    +'<div class="pt-sec pt-row"><div class="pt-lbl-l">N° support</div><div class="pt-val-r pt-shaded">'+esc(d.support||"—")+'</div></div>'
+    +'<div class="pt-sec pt-row"><div class="pt-lbl-l">Réceptionné<br>par</div><div class="pt-val-r">'+esc(d.receptionnePar||"—")+'</div></div>'
+    +'</div>';
+}
+function plFillPreview(){if($("pl-preview"))$("pl-preview").innerHTML=plTicketHtml(plFormData());}
+function plUpdateQte(){var c=plNum($("pl-colis").value),p=plNum($("pl-pcb").value);$("pl-qte").value=(c*p).toLocaleString("fr-FR");}
+function plAutofillFromCatalogue(){
+  var code=$("pl-code").value.trim();
+  var a=_artIndex&&_artIndex[code];
+  if(!a)return;
+  if(!$("pl-libelle").value.trim())$("pl-libelle").value=a.designation||"";
+  if(!$("pl-adresse").value.trim())$("pl-adresse").value=a.adresse||"";
+  if(!$("pl-pcb").value)$("pl-pcb").value=a.pcb||"";
+  if(!$("pl-fourn").value.trim())$("pl-fourn").value=a.fournisseur||"";
+  plUpdateQte();plFillPreview();
+}
+function plResetForm(){
+  ["pl-id","pl-code","pl-libelle","pl-adresse","pl-colis","pl-pcb","pl-fourn","pl-support","pl-qte"].forEach(function(id){$(id).value="";});
+  $("pl-date").value=rtISO(new Date());
+  $("pl-recept").value=(ME&&ME.nom)||"";
+  $("pl-copies").value=1;
+  $("pl-mode-lbl").textContent="Nouvelle fiche";
+  $("pl-dup").style.display="none";
+  plFillPreview();
+}
+function plEdit(id){
+  var r=_pals.find(function(x){return x.id===id;});if(!r)return;
+  $("pl-id").value=r.id;$("pl-code").value=r.code||"";$("pl-libelle").value=r.libelle||"";
+  $("pl-adresse").value=r.adresse||"";$("pl-colis").value=r.colis||"";$("pl-pcb").value=r.pcb||"";
+  $("pl-fourn").value=r.fourn||"";$("pl-date").value=r.dateEntree||"";$("pl-support").value=r.support||"";
+  $("pl-recept").value=r.receptionnePar||"";
+  plUpdateQte();plFillPreview();
+  $("pl-mode-lbl").textContent="Modification de la fiche "+(r.code||"");
+  $("pl-dup").style.display="";
+  var wrap=document.querySelector(".wrap");if(wrap)wrap.scrollTop=0;
+}
+function plDuplicateCurrent(){
+  $("pl-id").value="";
+  $("pl-mode-lbl").textContent="Nouvelle fiche (dupliquée)";
+  $("pl-dup").style.display="none";
+  toast("Fiche dupliquée — modifiez si besoin puis enregistrez.");
+}
+function plDelete(id){
+  var r=_pals.find(function(x){return x.id===id;});if(!r)return;
+  if(!confirm("Supprimer la fiche palette "+(r.code||"")+" ("+(r.adresse||"")+") ?"))return;
+  api("palettes","DELETE",{id:id}).then(function(){
+    toast("Fiche supprimée.");
+    if($("pl-id").value===id)plResetForm();
+    renderPalettes();
+  }).catch(function(e){toast(e.message);});
+}
+function plSave(){
+  var d=plFormData();
+  if(!d.code){toast("Saisissez le code article.");$("pl-code").focus();return;}
+  if(!d.adresse){toast("Saisissez l'adresse picking.");$("pl-adresse").focus();return;}
+  api("palettes","POST",d).then(function(){
+    toast(d.id?"Fiche mise à jour ✅":"Fiche enregistrée ✅");
+    plResetForm();
+    api("palettes").then(function(r){_pals=r.palettes||[];plRender();});
+  }).catch(function(e){toast(e.message);});
+}
+function plUpdateSelCount(){
+  var n=document.querySelectorAll("#pl-body .pl-check:checked").length;
+  $("pl-sel-count").textContent=n?n+" fiche(s) sélectionnée(s)":"";
+}
+function plPrintMany(list){
+  if(!list.length)return;
+  var css=PAL_TICKET_CSS+"body{margin:0;padding:16px 0;display:flex;flex-direction:column;align-items:center}.pal-print-page{padding:24px 0;page-break-after:always}.pal-print-page:last-child{page-break-after:auto}@page{margin:12mm}";
+  var h=list.map(function(d){return '<div class="pal-print-page">'+plTicketHtml(d)+'</div>';}).join("");
+  openPrintable("Fiche(s) palette",h,css);
+}
+function plPrintOne(d,forceCopies){
+  if(!d.code||!d.adresse){toast("Renseignez au moins le code article et l'adresse picking avant d'imprimer.");return;}
+  var n=forceCopies||plNum($("pl-copies")?$("pl-copies").value:1)||1;
+  var arr=[];for(var i=0;i<n;i++)arr.push(d);
+  plPrintMany(arr);
+}
+function plPrintSelected(){
+  var ids=Array.prototype.map.call(document.querySelectorAll("#pl-body .pl-check:checked"),function(c){return c.dataset.id;});
+  if(!ids.length){toast("Sélectionnez au moins une fiche à imprimer.");return;}
+  var recs=ids.map(function(id){return _pals.find(function(x){return x.id===id;});}).filter(Boolean);
+  plPrintMany(recs);
+}
+function plRender(){
+  var q=norm($("pl-search").value);
+  var list=_pals.filter(function(r){
+    if(!q)return true;
+    return norm(r.code).indexOf(q)>=0||norm(r.libelle).indexOf(q)>=0||norm(r.adresse).indexOf(q)>=0||norm(r.support).indexOf(q)>=0||norm(r.fourn).indexOf(q)>=0;
+  });
+  var totQte=0,fours={};
+  _pals.forEach(function(r){totQte+=(r.qte||0);if(r.fourn)fours[r.fourn]=1;});
+  $("pl-k-n").textContent=_pals.length;
+  $("pl-k-qte").textContent=totQte.toLocaleString("fr-FR");
+  $("pl-k-four").textContent=Object.keys(fours).length;
+  var h="";
+  list.forEach(function(r){
+    h+='<tr><td><input type="checkbox" class="pl-check" data-id="'+r.id+'"></td>'
+      +'<td><b>'+esc(r.code)+'</b></td><td>'+esc(r.libelle||"")+'</td><td>'+esc(r.adresse||"")+'</td>'
+      +'<td class="pl-cen">'+(r.colis||0)+' × '+(r.pcb||0)+'</td>'
+      +'<td class="pl-cen">'+((r.qte||0).toLocaleString("fr-FR"))+'</td>'
+      +'<td>'+esc(r.fourn||"")+'</td><td>'+(r.dateEntree?rtFR(r.dateEntree):"")+'</td><td>'+esc(r.support||"")+'</td><td>'+esc(r.receptionnePar||"")+'</td>'
+      +'<td><button class="btn btn-xs" data-edit="'+r.id+'" title="Modifier">✏️</button> <button class="btn btn-xs" data-pr="'+r.id+'" title="Imprimer">🖨️</button> <button class="btn btn-xs btn-danger" data-del="'+r.id+'" title="Supprimer">✕</button></td></tr>';
+  });
+  $("pl-body").innerHTML=h;
+  $("pl-empty").style.display=list.length?"none":"block";
+  Array.prototype.forEach.call(document.querySelectorAll("#pl-body [data-edit]"),function(b){b.onclick=function(){plEdit(b.dataset.edit);};});
+  Array.prototype.forEach.call(document.querySelectorAll("#pl-body [data-pr]"),function(b){b.onclick=function(){var r=_pals.find(function(x){return x.id===b.dataset.pr;});if(r)plPrintOne(r,1);};});
+  Array.prototype.forEach.call(document.querySelectorAll("#pl-body [data-del]"),function(b){b.onclick=function(){plDelete(b.dataset.del);};});
+  Array.prototype.forEach.call(document.querySelectorAll("#pl-body .pl-check"),function(c){c.onchange=plUpdateSelCount;});
+  if($("pl-selall"))$("pl-selall").checked=false;
+  plUpdateSelCount();
+  var seen={},fl=[];
+  ((DATA&&DATA.catalogue)||[]).forEach(function(a){var f=String(a.fournisseur||"").trim();if(f&&!seen[f]){seen[f]=1;fl.push(f);}});
+  fl.sort(function(x,y){return x.localeCompare(y,"fr");});
+  if($("pl-four-list"))$("pl-four-list").innerHTML=fl.map(function(f){return '<option value="'+esc(f)+'">';}).join("");
+}
+function plBind(){
+  if(_plBound)return;_plBound=true;
+  ["pl-code","pl-libelle","pl-adresse","pl-fourn","pl-date","pl-support","pl-recept"].forEach(function(id){
+    $(id).addEventListener("input",plFillPreview);
+  });
+  ["pl-colis","pl-pcb"].forEach(function(id){
+    $(id).addEventListener("input",function(){plUpdateQte();plFillPreview();});
+  });
+  $("pl-code").addEventListener("change",plAutofillFromCatalogue);
+  $("pl-save").onclick=plSave;
+  $("pl-reset").onclick=plResetForm;
+  $("pl-print").onclick=function(){plPrintOne(plFormData());};
+  $("pl-dup").onclick=plDuplicateCurrent;
+  $("pl-search").addEventListener("input",plRender);
+  $("pl-selall").onchange=function(){
+    var on=$("pl-selall").checked;
+    Array.prototype.forEach.call(document.querySelectorAll("#pl-body .pl-check"),function(c){c.checked=on;});
+    plUpdateSelCount();
+  };
+  $("pl-print-sel").onclick=plPrintSelected;
+}
+function renderPalettes(){
+  plBind();
+  if(!$("pl-date").value)$("pl-date").value=rtISO(new Date());
+  if(!$("pl-recept").value)$("pl-recept").value=(ME&&ME.nom)||"";
+  plFillPreview();
+  api("palettes").then(function(r){_pals=r.palettes||[];plRender();}).catch(function(e){toast(e.message);});
+}
+
 /* ---------- Liaisons globales ---------- */
 /* ---------- Theme clair / sombre ---------- */
 var THEME_KEY="gaj_theme";
@@ -9509,7 +9827,8 @@ var MI={
   undo:mi("#F472B6",'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 8 4 12.2l4.5 4.2"/><path d="M4 12.2h10.5a5.3 5.3 0 0 1 0 10.6H12"/></svg>'),
   shieldLock:mi("#F87171",'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4.5 5.5V11c0 5.2 3.2 8.7 7.5 10.5 4.3-1.8 7.5-5.3 7.5-10.5V5.5z"/><rect x="9.3" y="11" width="5.4" height="4.6" rx="1"/><path d="M10.3 11V9.6a1.7 1.7 0 0 1 3.4 0V11"/></svg>'),
   users:mi("#60A5FA",'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17.5" cy="9" r="2.3"/><path d="M15.5 14.2c2.8.4 4.9 2.8 4.9 5.8"/></svg>'),
-  clock:mi("#C084FC",'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>')
+  clock:mi("#C084FC",'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>'),
+  tag:mi("#F59E0B",'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 2.5h6a2 2 0 0 1 2 2v6a2 2 0 0 1-.6 1.4l-9 9a2 2 0 0 1-2.8 0l-6-6a2 2 0 0 1 0-2.8l9-9a2 2 0 0 1 1.4-.6z"/><circle cx="16.5" cy="7.5" r="1.6"/></svg>')
 };
 var MENU_GROUPS=[
   {id:"g-dash", icon:MI.gdash, label:"Tableau de bord et Rapport", items:[
@@ -9528,6 +9847,9 @@ var MENU_GROUPS=[
   ]},
   {id:"g-retour", icon:MI.undo, label:"Enregistrement retour consignes", items:[
     {id:"retour", icon:MI.undo, label:"Retour consignes"}
+  ]},
+  {id:"g-palettes", icon:MI.tag, label:"Étiquetage palettes", items:[
+    {id:"palettes", icon:MI.tag, label:"Fiches palettes"}
   ]}
 ];
 function menuGroupsFor(role){
