@@ -4189,25 +4189,25 @@ body.hide-theo-cols .m-tp,body.hide-theo-cols .m-ec,body.hide-theo-cols .m-val{d
     <!-- ========== FICHES PALETTES ========== -->
     <div class="view" id="v-palettes">
       <style>
-        .pal-ticket{width:380px;max-width:100%;margin:0 auto;background:#fff;border:1.5px solid #111;border-radius:3px;font-family:Arial,Helvetica,sans-serif;color:#111;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.12)}
+        .pal-ticket{width:460px;max-width:100%;margin:0 auto;background:#fff;border:1.5px solid #111;border-radius:3px;font-family:Arial,Helvetica,sans-serif;color:#111;overflow:hidden;box-shadow:0 10px 26px rgba(0,0,0,.12)}
         .pal-ticket .pt-sec{padding:11px 16px;border-bottom:1px solid #ccc;text-align:center}
         .pal-ticket .pt-sec:last-child{border-bottom:none}
-        .pal-ticket .pt-lbl{font-size:13px;font-weight:700;letter-spacing:.1em;color:#555;text-transform:uppercase;margin-bottom:5px}
-        .pal-ticket .pt-code{font-size:48px;font-weight:900;letter-spacing:.01em;line-height:1.05;word-break:break-word}
-        .pal-ticket .pt-libelle{font-size:27px;font-weight:800;line-height:1.22;text-transform:uppercase;white-space:pre-line}
-        .pal-ticket .pt-adresse{font-size:46px;font-weight:900;letter-spacing:.04em;word-break:break-word}
-        .pal-ticket .pt-colispcb{display:flex;align-items:flex-end;justify-content:center;gap:8px;padding:11px 8px}
+        .pal-ticket .pt-lbl{font-size:16px;font-weight:700;letter-spacing:.08em;color:#555;text-transform:uppercase;margin-bottom:6px}
+        .pal-ticket .pt-code{font-size:60px;font-weight:900;letter-spacing:.01em;line-height:1.05;word-break:break-word}
+        .pal-ticket .pt-libelle{font-size:34px;font-weight:800;line-height:1.2;text-transform:uppercase;white-space:pre-line}
+        .pal-ticket .pt-adresse{font-size:58px;font-weight:900;letter-spacing:.03em;word-break:break-word}
+        .pal-ticket .pt-colispcb{display:flex;align-items:flex-end;justify-content:center;gap:16px;padding:11px 8px}
         .pal-ticket .pt-cp-col{display:flex;flex-direction:column;align-items:center;min-width:0}
         .pal-ticket .pt-cp-col .pt-lbl{margin-bottom:3px}
-        .pal-ticket .pt-cp-x,.pal-ticket .pt-cp-eq{font-size:32px;font-weight:800;padding:0 2px 4px;color:#333}
-        .pal-ticket .pt-num{font-size:38px;font-weight:900;line-height:1}
+        .pal-ticket .pt-cp-x,.pal-ticket .pt-cp-eq{font-size:40px;font-weight:800;padding:0 2px 4px;color:#333}
+        .pal-ticket .pt-num{font-size:48px;font-weight:900;line-height:1}
         .pal-ticket .pt-shaded{background:#e3e3e3;padding:3px 11px;border-radius:3px;display:inline-block}
         .pal-ticket .pt-row{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:10px}
         .pal-ticket .pt-lbl-l{font-size:11px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.04em;line-height:1.25;flex:none}
         .pal-ticket .pt-val-r{font-size:21px;font-weight:900;text-align:right;flex:1;overflow-wrap:anywhere}
         #v-palettes .pl-editor{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
         #v-palettes .pl-form{flex:1.3;min-width:320px}
-        #v-palettes .pl-preview-col{flex:1;min-width:300px;position:sticky;top:6px}
+        #v-palettes .pl-preview-col{flex:1;min-width:480px;position:sticky;top:6px}
         #v-palettes .pl-preview-tag{text-align:center;font-size:11px;color:var(--muted);margin-top:10px}
         #v-palettes .pl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
         #v-palettes .pl-check{width:auto;accent-color:var(--navy)}
@@ -8968,18 +8968,18 @@ function rtXls(){
    FICHES PALETTES — génération & édition d'étiquettes palette
    ============================================================ */
 var _pals=[], _plBound=false;
-var PAL_TICKET_CSS=".pal-ticket{width:380px;max-width:100%;margin:0 auto;background:#fff;border:1.5px solid #111;border-radius:3px;font-family:Arial,Helvetica,sans-serif;color:#111;overflow:hidden}"
+var PAL_TICKET_CSS=".pal-ticket{width:460px;max-width:100%;margin:0 auto;background:#fff;border:1.5px solid #111;border-radius:3px;font-family:Arial,Helvetica,sans-serif;color:#111;overflow:hidden}"
   +".pal-ticket .pt-sec{padding:11px 16px;border-bottom:1px solid #ccc;text-align:center}"
   +".pal-ticket .pt-sec:last-child{border-bottom:none}"
-  +".pal-ticket .pt-lbl{font-size:13px;font-weight:700;letter-spacing:.1em;color:#555;text-transform:uppercase;margin-bottom:5px}"
-  +".pal-ticket .pt-code{font-size:48px;font-weight:900;letter-spacing:.01em;line-height:1.05;word-break:break-word}"
-  +".pal-ticket .pt-libelle{font-size:27px;font-weight:800;line-height:1.22;text-transform:uppercase}"
-  +".pal-ticket .pt-adresse{font-size:46px;font-weight:900;letter-spacing:.04em;word-break:break-word}"
-  +".pal-ticket .pt-colispcb{display:flex;align-items:flex-end;justify-content:center;gap:8px;padding:11px 8px}"
+  +".pal-ticket .pt-lbl{font-size:16px;font-weight:700;letter-spacing:.08em;color:#555;text-transform:uppercase;margin-bottom:6px}"
+  +".pal-ticket .pt-code{font-size:60px;font-weight:900;letter-spacing:.01em;line-height:1.05;word-break:break-word}"
+  +".pal-ticket .pt-libelle{font-size:34px;font-weight:800;line-height:1.2;text-transform:uppercase}"
+  +".pal-ticket .pt-adresse{font-size:58px;font-weight:900;letter-spacing:.03em;word-break:break-word}"
+  +".pal-ticket .pt-colispcb{display:flex;align-items:flex-end;justify-content:center;gap:16px;padding:11px 8px}"
   +".pal-ticket .pt-cp-col{display:flex;flex-direction:column;align-items:center;min-width:0}"
   +".pal-ticket .pt-cp-col .pt-lbl{margin-bottom:3px}"
-  +".pal-ticket .pt-cp-x,.pal-ticket .pt-cp-eq{font-size:32px;font-weight:800;padding:0 2px 4px;color:#333}"
-  +".pal-ticket .pt-num{font-size:38px;font-weight:900;line-height:1}"
+  +".pal-ticket .pt-cp-x,.pal-ticket .pt-cp-eq{font-size:40px;font-weight:800;padding:0 2px 4px;color:#333}"
+  +".pal-ticket .pt-num{font-size:48px;font-weight:900;line-height:1}"
   +".pal-ticket .pt-shaded{background:#e3e3e3;padding:3px 11px;border-radius:3px;display:inline-block}"
   +".pal-ticket .pt-row{display:flex;align-items:center;justify-content:space-between;text-align:left;gap:10px}"
   +".pal-ticket .pt-lbl-l{font-size:11px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.04em;line-height:1.25;flex:none}"
@@ -9090,21 +9090,25 @@ function plPrintMany(list){
   if(!list.length)return;
   var css=PAL_TICKET_CSS
     +"body{margin:0}"
-    +".pal-print-page{width:100%;min-height:100vh;box-sizing:border-box;display:flex;align-items:center;justify-content:center;page-break-after:always}"
+    +".pal-print-page{position:relative;overflow:hidden;page-break-after:always}"
     +".pal-print-page:last-child{page-break-after:auto}"
-    +"@page{margin:10mm;size:A4}";
-  /* Chaque fiche est agrandie (zoom) pour occuper le maximum de la page A4,
-     calculé dynamiquement selon sa taille réelle rendue (une fiche avec un
-     libellé sur 2 lignes n'a pas exactement la même hauteur qu'une autre). */
+    +".pal-ticket{transform-origin:top left}"
+    +"@page{margin:8mm;size:A4}";
+  /* Chaque fiche est étirée (largeur ET hauteur indépendamment) pour occuper
+     toute la surface imprimable de la page A4, calculé dynamiquement selon sa
+     taille réelle rendue (une fiche avec un libellé sur 2 lignes n'a pas
+     exactement la même hauteur qu'une autre). */
   var fitScript="<scr"+"ipt>window.addEventListener('load',function(){"
     +"try{"
-    +"var mm=96/25.4,margin=10*mm,availW=210*mm-margin*2,availH=297*mm-margin*2;"
+    +"var mm=96/25.4,margin=8*mm,availW=210*mm-margin*2,availH=297*mm-margin*2;"
     +"Array.prototype.forEach.call(document.querySelectorAll('.pal-print-page'),function(page){"
     +"var t=page.querySelector('.pal-ticket');if(!t)return;"
-    +"t.style.zoom=1;"
+    +"t.style.transform='none';"
     +"var w=t.offsetWidth,h=t.offsetHeight;if(!w||!h)return;"
-    +"var s=Math.min(availW/w,availH/h);"
-    +"if(s>0&&isFinite(s))t.style.zoom=s;"
+    +"page.style.width=availW+'px';page.style.height=availH+'px';"
+    +"t.style.position='absolute';t.style.top='0';t.style.left='0';"
+    +"var sx=availW/w,sy=availH/h;"
+    +"if(sx>0&&isFinite(sx)&&sy>0&&isFinite(sy))t.style.transform='scale('+sx+','+sy+')';"
     +"});"
     +"}catch(e){}"
     +"});</scr"+"ipt>";
